@@ -38,9 +38,25 @@ namespace dqm4hep {
 
     /**
      * RunControlInterface class
+     *
+     * Main user interface to connect to an external run control instance.
+     * This interface must be implemented by user and declared as a plugin.
+     * This plugin will be loaded in a run control server as used as the main
+     * interface to receive start and stop signal from an external run control.
+     *
+     * WARNING : The current implementation of the run control process supposes
+     * that the signal handling in this class is done in a separate thread.
+     *
+     * On server startup/shutdown, the user will be notifier=d using the callback
+     * functions onServerStartup() and onServerShutdown().
+     *
+     * To start a new run or end the current one, user can call the startNewRun()
+     * and endCurrentRun() functions. By doing so, all listening clients of the
+     * run control server will be notified.
      */
     class RunControlInterface
     {
+      friend class RunControlServer;
     public:
       /**
        * Constructor
@@ -51,6 +67,16 @@ namespace dqm4hep {
        * Destructor
        */
       virtual ~RunControlInterface();
+
+      /**
+       * Callback method on run control server startup
+       */
+      virtual void onServerStartup() {}
+
+      /**
+       * Callback method on run control server shutdown
+       */
+      virtual void onServerShutdown() {}
 
     protected:
       /**
@@ -77,7 +103,7 @@ namespace dqm4hep {
       void setRunControl(refactor::RunControl *pRunControl);
 
     private:
-      refactor::RunControl          *m_pRunControl;
+      refactor::RunControl               *m_pRunControl;   ///< The run control instance
     };
 
   }

@@ -5,22 +5,22 @@
  * Creation date : mer. juin 17 2015
  *
  * This file is part of DQM4HEP libraries.
- * 
+ *
  * DQM4HEP is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  * based upon these libraries are permitted. Any copy of these libraries
  * must include this copyright notice.
- * 
+ *
  * DQM4HEP is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with DQM4HEP.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * @author Remi Ete
  * @copyright CNRS , IPNL
  */
@@ -30,36 +30,112 @@
 #define DQM4HEP_NETWORKTOOL_H
 
 // -- dqm4hep headers
-#include "dqm4hep/DQM4HEP.h"
+#include "dqm4hep/Server.h"
+#include "dqm4hep/Client.h"
+#include "dqm4hep/Service.h"
+#include "dqm4hep/RequestHandler.h"
 
 namespace dqm4hep {
 
   namespace core {
 
-    /** NetworkTool class
+    /**
+     * Network class
+     *
+     * Helper class that define standard keys for networking.
+     * Provides helper functions to create the networking objects
+     * used by dqm4hep core components.
      */
-    class NetworkTool
+    class Network
     {
     public:
-      /** Returns the event collector list currently running on the network
+      /**
+       * Server class
+       *
+       * Gather all server related functions
        */
-      static StringVector getEventCollectors();
+      class Server
+      {
+      public:
+        /**
+         * Create a run control action service
+         *
+         * @param pServer the server instance that will create and handle the service
+         * @param rcName the run control name
+         * @return the run control action service
+         */
+        static net::Service<Json::Value> *createRCActionService(net::Server *pServer, const std::string &rcName);
 
-      /** Returns the monitor element collector list currently running on the network
-       */
-      static StringVector getMonitorElementCollectors();
+        /**
+         * Create a run info request handler
+         *
+         * @param pServer the server instance that will create and handle the handler
+         * @param rcName the run control name
+         * @param pController the controller class that will receive the run info request
+         * @param function the controller method that will receive the run info request
+         */
+        template <typename Controller>
+        static void createRCRunInfoRequestHandler(net::Server *pServer, const std::string &rcName,
+        Controller *pController, void (Controller::*function)(const Json::Value &request, Json::Value &response));
+      };
 
-      /** Whether the data collector is currently running on the network
+      /**
+      * Client class
+      *
+      * Gather all client related functions
        */
-      static bool eventCollectorExists(const std::string &collectorName);
+      class Client
+      {
+      public:
+        /**
+         * Subscribe to a run control action service
+         *
+         * @param pClient the client instance used to subscribe to the run control action
+         * @param rcName the run control name
+         * @param pController the controller class that will receive the service updates
+         * @param function the controller method that will receive the service updates
+         */
+        template <typename Controller>
+        static void subscribetoRCAction(net::Client *pClient, const std::string &rcName,
+        Controller *pController, void (Controller::*function)(const Json::Value &runAction));
 
-      /** Whether the monitor element collector is currently running on the network
-       */
-      static bool monitorElementCollectorExists(const std::string &collectorName);
+        /**
+         * [getRunInfo description]
+         * @param pClient [description]
+         * @param rcName  [description]
+         * @param runInfo [description]
+         */
+        static void getRunInfo(net::Client *pClient, const std::string &rcName, Json::Value &runInfo);
+      };
+
+
+    public:
+      // public constant keys defining service names
+      static constexpr const char *rcAction                = "action";
+      static constexpr const char *rcRunInfo               = "runinfo";
+
     };
+
+    //-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
+
+    template <typename Controller>
+    void Network::Server::createRCRunInfoRequestHandler(net::Server *pServer, const std::string &rcName, Controller *pController, void (Controller::*function)(const Json::Value &request, Json::Value &response))
+    {
+      pServer->createRequestHandler<Json::Value>(rcName, rcRunInfo, pController, function);
+    }
+
+    //-------------------------------------------------------------------------------------------------
+
+    template <typename Controller>
+    void Network::Client::subscribetoRCAction(net::Client *pClient, const std::string &rcName,
+    Controller *pController, void (Controller::*function)(const Json::Value &runAction))
+    {
+      pClient->subscribe(rcName, rcAction, pController, function);
+    }
 
   }
 
-} 
+}
 
 #endif  //  DQM4HEP_NETWORKTOOL_H

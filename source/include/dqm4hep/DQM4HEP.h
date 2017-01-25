@@ -426,6 +426,16 @@ namespace dqm4hep {
       template <class T>
       static std::string typeToString(const T &t);
 
+      /** Convert std::string to a type
+       */
+      template <class T>
+      static bool stringToType(const std::string &s, std::vector<T> &t);
+
+      /** Convert type to std::string
+       */
+      template <class T>
+      static std::string typeToString(const std::vector<T> &t);
+
       /** Screen splash of DQM4HEP
        */
       static void screenSplash();
@@ -481,6 +491,45 @@ namespace dqm4hep {
         throw;
 
       return oss.str();
+    }
+
+    //-------------------------------------------------------------------------------------------------
+
+    template <class T>
+    inline bool DQM4HEP::stringToType(const std::string &s, std::vector<T> &t)
+    {
+      StringVector tokens;
+      DQM4HEP::tokenize(s, tokens, " ");
+      typename std::vector<T> tokensT;
+
+      for(auto iter = tokens.begin(), endIter = tokens.end() ; endIter != iter ; ++iter)
+      {
+        T value;
+
+        if(DQM4HEP::stringToType(*iter, value))
+          return false;
+
+        tokensT.push_back(value);
+      }
+
+      t.insert(t.end(), tokensT.begin(), tokensT.end());
+      return true;
+    }
+
+    //-------------------------------------------------------------------------------------------------
+
+    template <class T>
+    inline std::string DQM4HEP::typeToString(const std::vector<T> &t)
+    {
+      std::string outputStr;
+
+      for(auto iter = t.begin(), endIter = t.end() ; endIter != iter ; ++iter)
+        outputStr += DQM4HEP::typeToString(*iter) + " ";
+
+      if(!outputStr.empty())
+        outputStr.pop_back();
+
+      return std::move(outputStr);
     }
 
     //-------------------------------------------------------------------------------------------------

@@ -5,22 +5,22 @@
  * Creation date : mar. oct. 7 2014
  *
  * This file is part of DQM4HEP libraries.
- * 
+ *
  * DQM4HEP is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  * based upon these libraries are permitted. Any copy of these libraries
  * must include this copyright notice.
- * 
+ *
  * DQM4HEP is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with DQM4HEP.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * @author Remi Ete
  * @copyright CNRS , IPNL
  */
@@ -31,6 +31,8 @@
 
 // -- dqm4hep headers
 #include "dqm4hep/DQM4HEP.h"
+#include "dqm4hep/Signal.h"
+#include "dqm4hep/Run.h"
 
 namespace dqm4hep {
 
@@ -38,104 +40,99 @@ namespace dqm4hep {
 
     class Run;
 
-    /** RunListener class
-     */
-    class RunListener
-    {
-    public:
-      /** Destructor
-       */
-      virtual ~RunListener() {}
-
-      /** Called back when a run is started
-       */
-      virtual void onStartOfRun(Run *const pRun) = 0;
-
-      /** Called back when a run ends
-       */
-      virtual void onEndOfRun(const Run *const pRun) = 0;
-    };
-
-    //-------------------------------------------------------------------------------------------------
-    //-------------------------------------------------------------------------------------------------
-
-    /** RunControl class
+    /**
+     * RunControl class.
+     *
+     * Run control backend. Provide the run control logic
+     * and start/end of run signal handling. Start a new run
+     * using the startNewRun() method and stop the surrent run
+     * using the endCurrentRun() method. When these methods are
+     * called, users can be notified using the two signals. To
+     * connect to these signals, use it like this :
+     *
+     * @code
+     * RunControl runControl("my-rc");
+     * MyClass *pClass = new MyClass();
+     *
+     * runControl.onStartOfRun().connect(pClass, &MyClass::handleStartOfRun);
+     * Run run;
+     * run.setRunNumber(42);
+     *
+     * // this will automatically call you method MyClass::handleStartOfRun(const Run &)
+     * runControl.startNewRun(run);
+     *
+     * @endcode
+     *
      */
     class RunControl
     {
     public:
-      /** Constructor
+      /**
+       * Constructor
+       *
+       * @param name the run control name
+       * @param password an optionnal password to check while steering the run control
        */
-      RunControl();
+      RunControl(const std::string &name, const std::string &password = "");
 
-      /** Constructor with name
+      /**
+       * Get the run control name
        */
-      RunControl(const std::string &runControlName);
+      const std::string &getName() const;
 
-      /** Destructor
+      /**
+       * Start a new run. nd the current one if running.
+       *
+       * @param run the run descriptor
+       * @param password an optionnal password to check (if provided in constructor)
        */
-      virtual ~RunControl();
+      void startNewRun(const Run &run, const std::string &password = "");
 
-      /** Set the run control name. This stops the current before
+      /**
+       * End the current run.
+       *
+       * @param password an optionnal password to check (if provided in constructor)
        */
-      virtual void setRunControlName(const std::string &runControlName);
+      void endCurrentRun(const std::string &password = "");
 
-      /** Get the run control name
+      /**
+       * Get the run descriptor.
+       * @return the current run descriptor if running, the previous run descriptor else
        */
-      virtual const std::string &getRunControlName() const;
+      const Run &getRun() const;
 
-      /** Create a new run from a Run
-       *  The run control is the owner the run
+      /**
+       * Get the run control state
        */
-      virtual StatusCode startNewRun(Run *pRun, const std::string &password = "");
+      State getRunState() const;
 
-      /** Create a new run.
-       *  End the current run if running
+      /**
+       * Get the start of run signal handler.
+       * Use it like this :
+       *
+       * @code
+       * runControl.onStartOfRun().connect(pMyClass, &MyClass::handleStartOfRun);
+       * @endcode
        */
-      virtual StatusCode startNewRun(int runNumber, const std::string &description = "", const std::string &detectorName = "", const std::string &password = "");
+      Signal<const Run &> &onStartOfRun();
 
-      /** End the current run
+      /**
+       * Get the end of run signal handler.
+       * Use it like this :
+       *
+       * @code
+       * runControl.onEndOfRun().connect(pMyClass, &MyClass::handleEndOfRun);
+       * @endcode
        */
-      virtual StatusCode endCurrentRun( const std::string &password = "" );
+      Signal<void> &onEndOfRun();
 
-      /** Get the current run number
-       */
-      virtual int getCurrentRunNumber() const;
-
-      /** Get the current run header
-       */
-      virtual Run *getCurrentRun() const;
-
-      /** Get the run state (running or not)
-       */
-      virtual State getRunState() const;
-
-      /** Whether a run has been started.
-       */
-      virtual bool isRunning() const;
-
-      /** Set the password needed to start/stop runs
-       */
-      void setPassword( const std::string &password );
-
-      /** Add a listener to the run control
-       */
-      virtual void addListener(RunListener *pListener);
-
-      /** Remove a listener from the run control
-       */
-      virtual void removeListener(RunListener *pListener);
-
-      /** Check run control password
-       */
-      bool checkPassword(const std::string &password);
-
-    protected:
-      State                            m_runState;
-      Run                             *m_pCurrentRun;
-      std::string                      m_runControlName;
-      std::string                      m_password;
-      std::vector<RunListener *>       m_listeners;
+    private:
+      State                                 m_runState;           ///< The run state
+      Run                                   m_run;                ///< The run descriptor
+      std::string                           m_password;           ///< An optional password to check on sor/eor
+      std::string                           m_name;               ///< The run control name
+      Signal<const Run &>                   m_startOfRunSignal;   ///< The start of run signal handler
+      Signal<void>                          m_endOfRunSignal;     ///< The end of run signal handler
     };
 
   }

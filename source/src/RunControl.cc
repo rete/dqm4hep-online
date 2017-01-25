@@ -5,28 +5,29 @@
  * Creation date : mar. oct. 7 2014
  *
  * This file is part of DQM4HEP libraries.
- * 
+ *
  * DQM4HEP is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  * based upon these libraries are permitted. Any copy of these libraries
  * must include this copyright notice.
- * 
+ *
  * DQM4HEP is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with DQM4HEP.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * @author Remi Ete
  * @copyright CNRS , IPNL
  */
 
 #include "dqm4hep/RunControl.h"
 #include "dqm4hep/Run.h"
+#include "dqm4hep/CoreTool.h"
 #include "dqm4hep/Logging.h"
 
 #include <algorithm>
@@ -35,134 +36,57 @@ namespace dqm4hep {
 
   namespace core {
 
-    RunControl::RunControl() :
-        m_runState(STOPPED_STATE),
-        m_pCurrentRun(NULL),
-        m_runControlName("DEFAULT")
+    RunControl::RunControl(const std::string &name, const std::string &password) :
+      m_runState(STOPPED_STATE),
+      m_name(name),
+      m_password(password)
     {
       /* nop */
     }
 
     //-------------------------------------------------------------------------------------------------
 
-    RunControl::RunControl(const std::string &runControlName) :
-        m_runState(STOPPED_STATE),
-        m_pCurrentRun(NULL),
-        m_runControlName(runControlName)
+    const std::string &RunControl::getName() const
     {
-      /* nop */
+      return m_name;
     }
 
     //-------------------------------------------------------------------------------------------------
 
-    RunControl::~RunControl()
+    void RunControl::startNewRun(const Run &run, const std::string &password)
     {
-      if(isRunning())
-        endCurrentRun(m_password);
-    }
+      if(!m_password.empty() && password != m_password)
+        throw StatusCodeException(STATUS_CODE_NOT_ALLOWED);
 
-    //-------------------------------------------------------------------------------------------------
+      if(this->getRunState() == RUNNING_STATE)
+        this->endCurrentRun(password);
 
-    void RunControl::setRunControlName(const std::string &runControlName)
-    {
-      if(this->isRunning())
-        endCurrentRun(m_password);
-
-      m_runControlName = runControlName;
-    }
-
-    //-------------------------------------------------------------------------------------------------
-
-    const std::string &RunControl::getRunControlName() const
-    {
-      return m_runControlName;
-    }
-
-    //-------------------------------------------------------------------------------------------------
-
-    StatusCode RunControl::startNewRun(Run *pRun, const std::string &password)
-    {
-      if(NULL == pRun)
-        return STATUS_CODE_INVALID_PTR;
-
-      if( ! this->checkPassword(password) )
-        return STATUS_CODE_NOT_ALLOWED;
-
-      if(isRunning())
-        RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, endCurrentRun(password));
-
-      m_pCurrentRun = pRun;
+      m_run = run;
+      m_run.setStartTime(CoreTool::now());
       m_runState = RUNNING_STATE;
-
-      for(std::vector<RunListener*>::iterator iter = m_listeners.begin(), endIter = m_listeners.end() ;
-          endIter != iter ; ++iter)
-        (*iter)->onStartOfRun(m_pCurrentRun);
-
-      return STATUS_CODE_SUCCESS;
+      m_startOfRunSignal.process(m_run);
     }
 
     //-------------------------------------------------------------------------------------------------
 
-    StatusCode RunControl::startNewRun(int runNumber, const std::string &description, const std::string &detectorName, const std::string &password)
+    void RunControl::endCurrentRun(const std::string &password)
     {
-      if( ! this->checkPassword(password) )
-        return STATUS_CODE_NOT_ALLOWED;
+      if(!m_password.empty() && password != m_password)
+        throw StatusCodeException(STATUS_CODE_NOT_ALLOWED);
 
-      if(isRunning())
-        RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, endCurrentRun(password));
+      if(this->getRunState() == STOPPED_STATE)
+        return;
 
-      m_pCurrentRun = new Run(runNumber, description, detectorName);
-      m_runState = RUNNING_STATE;
-
-      for(std::vector<RunListener*>::iterator iter = m_listeners.begin(), endIter = m_listeners.end() ;
-          endIter != iter ; ++iter)
-        (*iter)->onStartOfRun(m_pCurrentRun);
-
-      return STATUS_CODE_SUCCESS;
-    }
-
-    //-------------------------------------------------------------------------------------------------
-
-    StatusCode RunControl::endCurrentRun(const std::string &password)
-    {
-      if( ! this->checkPassword(password) )
-        return STATUS_CODE_NOT_ALLOWED;
-
-      if(!isRunning())
-        return STATUS_CODE_SUCCESS;
-
+      m_run.setEndTime(CoreTool::now());
       m_runState = STOPPED_STATE;
-
-      if(NULL != m_pCurrentRun)
-      {
-        // notify before deletion
-        for(std::vector<RunListener*>::iterator iter = m_listeners.begin(), endIter = m_listeners.end() ;
-            endIter != iter ; ++iter)
-          (*iter)->onEndOfRun(m_pCurrentRun);
-
-        delete m_pCurrentRun;
-      }
-
-      m_pCurrentRun = NULL;
-
-      return STATUS_CODE_SUCCESS;
+      m_endOfRunSignal.process();
     }
 
     //-------------------------------------------------------------------------------------------------
 
-    int RunControl::getCurrentRunNumber() const
+    const Run &RunControl::getRun() const
     {
-      if(NULL != m_pCurrentRun)
-        return m_pCurrentRun->getRunNumber();
-      else
-        return 0;
-    }
-
-    //-------------------------------------------------------------------------------------------------
-
-    Run *RunControl::getCurrentRun() const
-    {
-      return m_pCurrentRun;
+      return m_run;
     }
 
     //-------------------------------------------------------------------------------------------------
@@ -174,53 +98,18 @@ namespace dqm4hep {
 
     //-------------------------------------------------------------------------------------------------
 
-    bool RunControl::isRunning() const
+    Signal<const Run &> &RunControl::onStartOfRun()
     {
-      return m_runState == RUNNING_STATE;
+      return m_startOfRunSignal;
     }
 
     //-------------------------------------------------------------------------------------------------
 
-    void RunControl::addListener(RunListener *pListener)
+    Signal<void> &RunControl::onEndOfRun()
     {
-      if(NULL == pListener)
-        return;
-
-      if(std::find(m_listeners.begin(), m_listeners.end(), pListener) == m_listeners.end())
-        m_listeners.push_back(pListener);
-    }
-
-    //-------------------------------------------------------------------------------------------------
-
-    void RunControl::removeListener(RunListener *pListener)
-    {
-      std::vector<RunListener*>::iterator findIter = std::find(m_listeners.begin(), m_listeners.end(), pListener);
-
-      if(findIter != m_listeners.end())
-        m_listeners.erase(findIter);
-    }
-
-    //-------------------------------------------------------------------------------------------------
-
-    void RunControl::setPassword( const std::string &password )
-    {
-      m_password = password;
-    }
-
-    //-------------------------------------------------------------------------------------------------
-
-    bool RunControl::checkPassword(const std::string &password)
-    {
-      if( m_password.empty() )
-        return true;
-
-      if( m_password == password )
-        return true;
-
-      return false;
+      return m_endOfRunSignal;
     }
 
   }
 
 }
-

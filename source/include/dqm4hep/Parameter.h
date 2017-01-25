@@ -62,6 +62,13 @@ namespace dqm4hep {
       Parameter(const Parameter<T> &parameter);
 
       /**
+       * Move constructor
+       *
+       * @param parameter the parameter to move
+       */
+      Parameter(Parameter<T> &&parameter);
+
+      /**
        * Destructor
        */
       ~Parameter();
@@ -143,6 +150,13 @@ namespace dqm4hep {
       * @param parameter an input parameter
        */
       Parameter(const Parameter< std::vector<T> > &parameter);
+
+      /**
+       * Move constructor
+       *
+       * @param parameter the parameter to move
+       */
+      Parameter(Parameter< std::vector<T> > &&parameter);
 
       /**
        * Destructor
@@ -243,6 +257,16 @@ namespace dqm4hep {
     {
       if(m_initialized)
         m_value = parameter.m_value;
+    }
+
+    //-------------------------------------------------------------------------------------------------
+
+    template <typename T>
+    inline Parameter<T>::Parameter(Parameter<T> &&parameter) :
+      m_value(std::move(parameter.m_value)),
+      m_initialized(std::move(parameter.m_initialized))
+    {
+      /* nop */
     }
 
     //-------------------------------------------------------------------------------------------------
@@ -389,6 +413,16 @@ namespace dqm4hep {
     {
       if(m_initialized)
         m_value = parameter.m_value;
+    }
+
+    //-------------------------------------------------------------------------------------------------
+
+    template <typename T>
+    inline Parameter< std::vector<T> >::Parameter(Parameter< std::vector<T> > &&parameter) :
+      m_value(std::move(parameter.m_value)),
+      m_initialized(std::move(parameter.m_initialized))
+    {
+      /* nop */
     }
 
     //-------------------------------------------------------------------------------------------------

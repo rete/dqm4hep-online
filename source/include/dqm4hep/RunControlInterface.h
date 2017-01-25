@@ -100,10 +100,10 @@ namespace dqm4hep {
        *
        * @param pRunControl the run control instance
        */
-      void setRunControl(refactor::RunControl *pRunControl);
+      void setRunControl(RunControl *pRunControl);
 
     private:
-      refactor::RunControl               *m_pRunControl;   ///< The run control instance
+      RunControl                    *m_pRunControl;   ///< The run control instance
     };
 
   }

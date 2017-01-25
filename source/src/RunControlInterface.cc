@@ -63,7 +63,7 @@ namespace dqm4hep {
 
     //-------------------------------------------------------------------------------------------------
 
-    void RunControlInterface::setRunControl(refactor::RunControl *pRunControl)
+    void RunControlInterface::setRunControl(RunControl *pRunControl)
     {
       m_pRunControl = pRunControl;
     }

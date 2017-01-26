@@ -53,12 +53,13 @@ namespace dqm4hep {
     class ConfigurationHandle
     {
       friend class ParameterDirectory;
+      friend class ConfigurationManager;
     public:
       /**
        * Move constructor
        */
       ConfigurationHandle(ConfigurationHandle &&handle);
-      
+
       /**
        * Destructor
        */

@@ -30,6 +30,7 @@
 #define CONFIGURATIONMANAGER_H
 
 #include "dqm4hep/ConfigurationIO.h"
+#include "dqm4hep/ConfigurationHandle.h"
 
 namespace dqm4hep {
 
@@ -78,6 +79,12 @@ namespace dqm4hep {
       *
       */
      void printConfiguration() const;
+
+     /**
+      * [createHandle description]
+      * @return [description]
+      */
+     ConfigurationHandle createHandle();
 
    private:
      /**

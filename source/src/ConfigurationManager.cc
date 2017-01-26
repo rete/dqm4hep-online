@@ -108,6 +108,11 @@ namespace dqm4hep {
       m_pRootParameterDirectory->ls(true);
     }
 
+    ConfigurationHandle ConfigurationManager::createHandle()
+    {
+      return std::move(ConfigurationHandle(m_pRootParameterDirectory));
+    }
+
   }
 
 }

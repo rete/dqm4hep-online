@@ -1,0 +1,68 @@
+<dqm4hep>
+
+    <archiver>
+      <parameter name="open"> true </parameter>
+      <parameter name="directory"> /tmp </parameter>
+    </archiver>
+
+    <runControl>
+      <parameter name="name"> SDHCALRunControl </parameter>
+    </runControl>
+
+    <eventCollector>
+      <parameter name="name"> sdhcal_event_collector </parameter>
+      <parameter name="maxQueueSize"> 100 </parameter>
+      <parameter name="streamerName"> LCIOStreamer </parameter>
+    </eventCollector>
+
+    <monitorElementCollector>
+      <parameter name="name"> me_collector </parameter>
+    </monitorElementCollector>
+
+    <cycle>
+      <parameter name="type"> TimerCycle </parameter>
+      <parameter name="value"> 10 </parameter>
+      <parameter name="timeout"> 5 </parameter>
+    </cycle>
+
+    <module>
+      <parameter name="type"> RandomModule </parameter>
+      <parameter name="name"> MyRandomModule </parameter>
+
+      <userSettings>
+        <parameter name="HistoXMin"> -200 </parameter>
+        <parameter name="HistoXMax">  200 </parameter>
+
+        <subDir>
+          <parameter name="aSubParameter"> 42 </parameter>
+        </subDir>
+
+        <monitorElements>
+
+          <TimeDiffSpill>
+            <parameter name="name"> TimeDiffSpill </parameter>
+            <parameter name="path"> . </parameter>
+            <parameter name="type"> TH1F </parameter>
+            <parameter name="title"> Time (s) between two start time of spill </parameter>
+            <parameter name="nBins"> 500 </parameter>
+            <parameter name="min"> 0 </parameter>
+            <parameter name="max"> 100 </parameter>
+            <parameter name="resetPolicy"> EndOfRun </parameter>
+          </TimeDiffSpill>
+
+        </monitorElements>
+
+        <qualityTests>
+          <CurrentCheckQuality>
+              <parameter name="type"> CurrentQualityTest </parameter>
+              <parameter name="MaxAllowedCurrent"> -5 </parameter>
+              <parameter name="MaxDangerousCurrent"> -10 </parameter>
+          </CurrentCheckQuality>
+
+        </qualityTests>
+
+      </userSettings>
+
+    </module>
+
+</dqm4hep>

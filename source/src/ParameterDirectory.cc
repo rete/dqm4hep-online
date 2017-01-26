@@ -236,6 +236,17 @@ namespace dqm4hep {
 
     //-------------------------------------------------------------------------------------------------
 
+    void ParameterDirectory::reset()
+    {
+      for(auto iter = m_subDirectories.begin(), endIter = m_subDirectories.end() ; endIter != iter ; ++iter)
+        delete iter->second;
+
+      m_subDirectories.clear();
+      m_parameters.reset();
+    }
+
+    //-------------------------------------------------------------------------------------------------
+
     void ParameterDirectory::ls(bool recursive, unsigned int depth) const
     {
       std::cout << std::string(depth, ' ') << "- " << m_name << std::endl;

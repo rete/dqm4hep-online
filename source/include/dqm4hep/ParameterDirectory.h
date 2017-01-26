@@ -157,6 +157,11 @@ namespace dqm4hep {
        */
       const_iterator find(const std::string &name) const;
 
+      /**
+       * Reset the directory. Remove all parameters and sub-directories
+       */
+      void reset();
+
     private:
       /**
        * Constructor

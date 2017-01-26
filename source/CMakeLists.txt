@@ -167,6 +167,17 @@ INSTALL (
     RUNTIME DESTINATION bin
 )
 
+# -------------------------------------------------
+# build convert configuration executable
+
+ADD_EXECUTABLE( dqm4hep-convert-configuration main/dqm4hep-convert-configuration.cc )
+TARGET_LINK_LIBRARIES( dqm4hep-convert-configuration ${PROJECT_NAME} )
+
+INSTALL (
+    TARGETS dqm4hep-convert-configuration
+    RUNTIME DESTINATION bin
+)
+
 
 # -------------------------------------------------
 # build start shm driver executable

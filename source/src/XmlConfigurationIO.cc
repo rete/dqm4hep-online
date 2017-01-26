@@ -62,7 +62,10 @@ namespace dqm4hep {
       TiXmlElement *pRootElement = new TiXmlElement("dqm4hep");
       document.LinkEndChild(pRootElement);
 
-      return this->write(pRootElement, pDirectory->createHandle());
+      RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->write(pRootElement, pDirectory->createHandle()));
+      document.SaveFile(xmlFileName);
+
+      return STATUS_CODE_SUCCESS;
     }
 
     //-------------------------------------------------------------------------------------------------
@@ -127,7 +130,9 @@ namespace dqm4hep {
         RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, configHandle.getParameter(*iter, parameter));
 
         TiXmlElement *pParameterXmlElement = new TiXmlElement("parameter");
-        pParameterXmlElement->SetAttribute("value", parameter.get());
+        pParameterXmlElement->SetAttribute("name", *iter);
+        pParameterXmlElement->LinkEndChild(new TiXmlText(parameter.get()));
+
         pXmlElement->LinkEndChild(pParameterXmlElement);
       }
 

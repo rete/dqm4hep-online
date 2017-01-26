@@ -101,7 +101,7 @@ namespace dqm4hep {
         if(findIter == pDirectory->end())
         {
           ParameterDirectory *pNewDirectory = new ParameterDirectory(*iter, pDirectory);
-          findIter = pDirectory->m_subDirectories.insert(ParameterDirectoryMap::value_type(*iter, pDirectory)).first;
+          findIter = pDirectory->m_subDirectories.insert(ParameterDirectoryMap::value_type(*iter, pNewDirectory)).first;
         }
 
         pDirectory = findIter->second;
@@ -249,6 +249,7 @@ namespace dqm4hep {
         delete iter->second;
 
       m_subDirectories.clear();
+
       m_parameters.reset();
     }
 
@@ -256,19 +257,19 @@ namespace dqm4hep {
 
     void ParameterDirectory::ls(bool recursive, unsigned int depth) const
     {
-      std::cout << std::string(depth, ' ') << "- " << m_name << std::endl;
+      std::cout << std::string(depth, ' ') << "directory : '" << m_name << "'" << std::endl;
 
       StringVector keys(m_parameters.getKeys());
       StringVector values(m_parameters.getValues());
-
-      for(unsigned int p=0 ; p<keys.size() ; p++)
-        std::cout << std::string(depth, ' ') << " * " << keys.at(p) << " : " << values.at(p) << std::endl;
 
       if(recursive)
       {
         for(auto iter = m_subDirectories.begin(), endIter = m_subDirectories.end() ; endIter != iter ; ++iter)
           iter->second->ls(true, depth+2);
       }
+
+      for(unsigned int p=0 ; p<keys.size() ; p++)
+        std::cout << std::string(depth, ' ') << " -parameter '" << keys.at(p) << "' = " << values.at(p) << std::endl;
     }
 
     //-------------------------------------------------------------------------------------------------

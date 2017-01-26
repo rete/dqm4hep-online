@@ -1,81 +1,60 @@
 {
 
   "archiver" : {
-    "parameters" : {
-      "open" : true,
-      "directory" : "/tmp"
-    }
+    "open" : true,
+    "directory" : "/tmp"
   },
 
   "runControl" : {
-    "parameters" : {
-      "name" : "SDHCALRunControl"
-    }
+    "name" : "SDHCALRunControl"
   },
 
   "eventCollector" : {
-    "parameters" : {
-      "name" : "sdhcal_event_collector",
-      "maxQueueSize" : 100,
-      "streamerName" : "LCIOStreamer"
-    }
+    "name" : "sdhcal_event_collector",
+    "maxQueueSize" : 100,
+    "streamerName" : "LCIOStreamer"
   },
 
   "monitorElementCollector" : {
-    "parameters" : {
-      "name" : "me_collector"
-    }
+    "name" : "me_collector"
   },
 
   "cycle" : {
-    "parameters" : {
-      "type" : "TimerCycle",
-      "value" : 10,
-      "timeout" : 5
-    }
+    "type" : "TimerCycle",
+    "value" : 10,
+    "timeout" : 5
   },
 
   "module" : {
-    "parameters" : {
-      "type" : "RandomModule",
-      "name" : "MyRandomModule"
-    },
+    "type" : "RandomModule",
+    "name" : "MyRandomModule",
 
     "userSettings" : {
-
-      "parameters" : {
-        "HistoXMin" : -200,
-        "HistoXMax" : 200
-      },
+      "HistoXMin" : -200,
+      "HistoXMax" : 200,
 
       "subDir" : {
-        "parameters" : {
-          "aSubParameter" : 42
-        }
+        "aSubParameter" : 42
       },
 
       "monitorElements" : {
         "TimeDiffSpill" : {
-          "parameters" : {
-            "name" : "TimeDiffSpill",
-            "path" : ".",
-            "type" : "TH1F",
-            "title" : "Time (s) between two start time of spill",
-            "nBins" : 500,
-            "min" : 0,
-            "max" : 100,
-            "resetPolicy" : "EndOfRun"
-          }
+          "name" : "TimeDiffSpill",
+          "path" : ".",
+          "type" : "TH1F",
+          "title" : "Time (s) between two start time of spill",
+          "nBins" : 500,
+          "min" : 0,
+          "max" : 100,
+          "resetPolicy" : "EndOfRun"
         }
       },
 
       "qualityTests" : {
         "CurrentCheckQuality" : {
-          "parameters" : {
-            "type" : "CurrentQualityTest",
-            "MaxAllowedCurrent" : -5,
-            "MaxDangerousCurrent" : -10
-          }
+          "type" : "CurrentQualityTest",
+          "MaxAllowedCurrent" : -5,
+          "MaxDangerousCurrent" : -10
         }
       }
     }

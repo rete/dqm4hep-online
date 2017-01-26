@@ -77,23 +77,39 @@ namespace dqm4hep {
 
     //-------------------------------------------------------------------------------------------------
 
+    bool XmlConfigurationIO::isDirectory(const TiXmlElement *const pXmlElement) const
+    {
+      return (nullptr != pXmlElement->FirstChildElement());
+    }
+
+    //-------------------------------------------------------------------------------------------------
+
+    std::string XmlConfigurationIO::getParameter(const TiXmlElement *const pXmlElement) const
+    {
+      // walk through the child nodes and find the first text node.
+      // this is a way to ignore comments
+      const TiXmlNode *pXmlNode(pXmlElement->FirstChild());
+
+      while(pXmlNode)
+      {
+        if(pXmlNode->Type() == TiXmlNode::TINYXML_TEXT)
+          return pXmlNode->ValueStr();
+
+        pXmlNode = pXmlElement->FirstChild();
+      }
+
+      return std::string("");
+    }
+
+    //-------------------------------------------------------------------------------------------------
+
     StatusCode XmlConfigurationIO::read(TiXmlElement *pXmlElement, ParameterDirectory *pDirectory)
     {
       for(TiXmlElement *pChildXmlElement = pXmlElement->FirstChildElement() ; pChildXmlElement != nullptr ; pChildXmlElement = pChildXmlElement->NextSiblingElement())
       {
         const std::string &name(pChildXmlElement->ValueStr());
 
-        if(name == "parameter")
-        {
-          const char *pName = pChildXmlElement->Attribute("name");
-
-          if(nullptr == pName)
-            return STATUS_CODE_FAILURE;
-
-          std::string value(nullptr == pChildXmlElement->GetText() ? "" : pChildXmlElement->GetText());
-          pDirectory->getParameters().set(pName, value);
-        }
-        else
+        if(this->isDirectory(pChildXmlElement))
         {
           ParameterDirectory *pSubDirectory = pDirectory->mkdir(name);
 
@@ -101,6 +117,11 @@ namespace dqm4hep {
             return STATUS_CODE_FAILURE;
 
           this->read(pChildXmlElement, pSubDirectory);
+        }
+        else
+        {
+          const std::string value(this->getParameter(pChildXmlElement));
+          pDirectory->getParameters().set(name, value);
         }
       }
 
@@ -129,8 +150,7 @@ namespace dqm4hep {
         StringParameter parameter;
         RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, configHandle.getParameter(*iter, parameter));
 
-        TiXmlElement *pParameterXmlElement = new TiXmlElement("parameter");
-        pParameterXmlElement->SetAttribute("name", *iter);
+        TiXmlElement *pParameterXmlElement = new TiXmlElement(*iter);
         pParameterXmlElement->LinkEndChild(new TiXmlText(parameter.get()));
 
         pXmlElement->LinkEndChild(pParameterXmlElement);

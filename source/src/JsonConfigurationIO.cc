@@ -36,7 +36,6 @@ namespace dqm4hep {
 
   namespace core {
 
-
     StatusCode JsonConfigurationIO::read(const std::string &jsonFileName, ParameterDirectory *pDirectory)
     {
       // Parse the file
@@ -88,17 +87,11 @@ namespace dqm4hep {
       {
         Json::Value member(value[*iter]);
 
-        if(*iter == "parameters")
+        if(member.isNull())
         {
-          StringVector parameterKeys(member.getMemberNames());
-
-          for(auto jter = parameterKeys.begin(), endJter = parameterKeys.end() ; endJter != jter ; ++jter)
-          {
-            std::string value(member[*jter].asString());
-            pDirectory->getParameters().set(*jter, value);
-          }
+          continue;
         }
-        else
+        else if(member.isObject())
         {
           ParameterDirectory *pSubDirectory = pDirectory->mkdir(*iter);
 
@@ -106,6 +99,20 @@ namespace dqm4hep {
             return STATUS_CODE_FAILURE;
 
           this->read(member, pSubDirectory);
+        }
+        else if(member.isArray())
+        {
+          StringVector arrayValues;
+
+          for(unsigned int i=0 ; i<member.size() ; i++)
+            arrayValues.push_back(member[i].asString());
+
+          pDirectory->getParameters().set(*iter, arrayValues);
+        }
+        else
+        {
+          std::string value(member.asString());
+          pDirectory->getParameters().set(*iter, value);
         }
       }
 
@@ -128,17 +135,14 @@ namespace dqm4hep {
       }
 
       StringVector parameterNames(configHandle.getParameterNames());
-      Json::Value parametersValue;
 
       for(auto iter = parameterNames.begin(), endIter = parameterNames.end() ; endIter != iter ; ++iter)
       {
         StringParameter parameter;
         RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, configHandle.getParameter(*iter, parameter));
 
-        parametersValue[*iter] = parameter.get();
+        value[*iter] = parameter.get();
       }
-
-      value["parameters"] = parametersValue;
 
       return STATUS_CODE_SUCCESS;
     }

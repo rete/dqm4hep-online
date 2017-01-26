@@ -72,6 +72,10 @@ namespace dqm4hep {
 
    private:
 
+     bool isDirectory(const TiXmlElement *const pXmlElement) const;
+
+     std::string getParameter(const TiXmlElement *const pXmlElement) const;
+
      StatusCode read(TiXmlElement *pXmlElement, ParameterDirectory *pDirectory);
 
      StatusCode write(TiXmlElement *pXmlElement, const ConfigurationHandle &configHandle);

@@ -53,7 +53,7 @@ namespace dqm4hep {
       /**
        * Create a top level directory. Ownership transfered to caller
        */
-      static ParameterDirectory *createToLevelDirectory();
+      static ParameterDirectory *createTopLevelDirectory();
 
       /**
        * Destructor

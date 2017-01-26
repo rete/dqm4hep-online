@@ -50,6 +50,13 @@ namespace dqm4hep {
 
     //-------------------------------------------------------------------------------------------------
 
+    ParameterDirectory *ParameterDirectory::createTopLevelDirectory()
+    {
+      return new ParameterDirectory("", nullptr);
+    }
+
+    //-------------------------------------------------------------------------------------------------
+
     const std::string &ParameterDirectory::getName() const
     {
       return m_name;

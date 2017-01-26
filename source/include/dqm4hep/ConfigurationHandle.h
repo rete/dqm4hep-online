@@ -55,6 +55,11 @@ namespace dqm4hep {
       friend class ParameterDirectory;
     public:
       /**
+       * Move constructor
+       */
+      ConfigurationHandle(ConfigurationHandle &&handle);
+      
+      /**
        * Destructor
        */
       ~ConfigurationHandle();
@@ -161,11 +166,6 @@ namespace dqm4hep {
        * Constructor
        */
       ConfigurationHandle(ParameterDirectory *pDirectory);
-
-      /**
-       * Move constructor
-       */
-      ConfigurationHandle(ConfigurationHandle &&handle);
 
     private:
       ParameterDirectory          *m_pDirectory;      ///< The wrapped parameter directory

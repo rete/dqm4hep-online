@@ -27,6 +27,7 @@
 
 
 #include "dqm4hep/ParameterDirectory.h"
+#include "dqm4hep/ConfigurationHandle.h"
 
 namespace dqm4hep {
 
@@ -39,16 +40,22 @@ namespace dqm4hep {
       /* nop */
     }
 
+    //-------------------------------------------------------------------------------------------------
+
     ParameterDirectory::~ParameterDirectory()
     {
       for(auto iter = m_subDirectories.begin(), endIter = m_subDirectories.end() ; endIter != iter ; ++iter)
         delete iter->second;
     }
 
+    //-------------------------------------------------------------------------------------------------
+
     const std::string &ParameterDirectory::getName() const
     {
       return m_name;
     }
+
+    //-------------------------------------------------------------------------------------------------
 
     std::string ParameterDirectory::getFullName() const
     {
@@ -64,6 +71,8 @@ namespace dqm4hep {
       fullName = "/" + fullName;
       return std::move(fullName);
     }
+
+    //-------------------------------------------------------------------------------------------------
 
     ParameterDirectory *ParameterDirectory::mkdir(const std::string &name)
     {
@@ -94,6 +103,8 @@ namespace dqm4hep {
       return pDirectory;
     }
 
+    //-------------------------------------------------------------------------------------------------
+
     bool ParameterDirectory::rmdir(const std::string &name)
     {
       if(name.empty())
@@ -122,35 +133,54 @@ namespace dqm4hep {
       return (1 == pParentDirectory->m_subDirectories.erase(pDirectory->getName()));
     }
 
-    void ParameterDirectory::ls(bool recursive)
+    //-------------------------------------------------------------------------------------------------
+
+    void ParameterDirectory::ls(bool recursive) const
     {
       this->ls(recursive, 0);
     }
 
+    //-------------------------------------------------------------------------------------------------
+
     bool ParameterDirectory::dirExists(const std::string &name) const
     {
-      return (this->find(name) == this->end());
+      return (this->getSubDirectory(name) != nullptr);
     }
+
+    //-------------------------------------------------------------------------------------------------
 
     const Parameters &ParameterDirectory::getParameters() const
     {
       return m_parameters;
     }
 
+    //-------------------------------------------------------------------------------------------------
+
     Parameters &ParameterDirectory::getParameters()
     {
       return m_parameters;
     }
-    //
-    // ParameterHandle ParameterDirectory::createHandle()
-    // {
-    //
-    // }
 
-    // ParameterHandle ParameterDirectory::createHandle(const std::string &name)
-    // {
-    //
-    // }
+    //-------------------------------------------------------------------------------------------------
+
+    ConfigurationHandle ParameterDirectory::createHandle()
+    {
+      return std::move(ConfigurationHandle(this));
+    }
+
+    //-------------------------------------------------------------------------------------------------
+
+    ConfigurationHandle ParameterDirectory::createHandle(const std::string &name)
+    {
+      ParameterDirectory *pDirectory(this->getSubDirectory(name));
+
+      if(nullptr == pDirectory)
+        throw StatusCodeException(STATUS_CODE_NOT_FOUND);
+
+      return std::move(ConfigurationHandle(pDirectory));
+    }
+
+    //-------------------------------------------------------------------------------------------------
 
     StringVector ParameterDirectory::getDirectorList() const
     {
@@ -162,37 +192,51 @@ namespace dqm4hep {
       return std::move(dirList);
     }
 
+    //-------------------------------------------------------------------------------------------------
+
     ParameterDirectory::iterator ParameterDirectory::begin()
     {
       return m_subDirectories.begin();
     }
+
+    //-------------------------------------------------------------------------------------------------
 
     ParameterDirectory::iterator ParameterDirectory::end()
     {
       return m_subDirectories.end();
     }
 
+    //-------------------------------------------------------------------------------------------------
+
     ParameterDirectory::const_iterator ParameterDirectory::begin() const
     {
       return m_subDirectories.begin();
     }
+
+    //-------------------------------------------------------------------------------------------------
 
     ParameterDirectory::const_iterator ParameterDirectory::end() const
     {
       return m_subDirectories.end();
     }
 
+    //-------------------------------------------------------------------------------------------------
+
     ParameterDirectory::iterator ParameterDirectory::find(const std::string &name)
     {
       return m_subDirectories.find(name);
     }
+
+    //-------------------------------------------------------------------------------------------------
 
     ParameterDirectory::const_iterator ParameterDirectory::find(const std::string &name) const
     {
       return m_subDirectories.find(name);
     }
 
-    void ParameterDirectory::ls(bool recursive, unsigned int depth)
+    //-------------------------------------------------------------------------------------------------
+
+    void ParameterDirectory::ls(bool recursive, unsigned int depth) const
     {
       std::cout << std::string(depth, ' ') << "- " << m_name << std::endl;
 
@@ -207,6 +251,62 @@ namespace dqm4hep {
         for(auto iter = m_subDirectories.begin(), endIter = m_subDirectories.end() ; endIter != iter ; ++iter)
           iter->second->ls(true, depth+2);
       }
+    }
+
+    //-------------------------------------------------------------------------------------------------
+
+    ParameterDirectory *ParameterDirectory::getSubDirectory(const std::string &subDirName)
+    {
+      if(subDirName.empty())
+        return nullptr;
+
+      StringVector directories;
+      DQM4HEP::tokenize(subDirName, directories, "/");
+
+      if(directories.empty())
+        return nullptr;
+
+      ParameterDirectory *pDirectory(this);
+
+      for(auto iter = directories.begin(), endIter = directories.end() ; endIter != iter ; ++iter)
+      {
+        auto findIter = pDirectory->find(*iter);
+
+        if(findIter == pDirectory->end())
+          return nullptr;
+
+        pDirectory = findIter->second;
+      }
+
+      return (this == pDirectory ? nullptr : pDirectory);
+    }
+
+    //-------------------------------------------------------------------------------------------------
+
+    const ParameterDirectory *ParameterDirectory::getSubDirectory(const std::string &subDirName) const
+    {
+      if(subDirName.empty())
+        return nullptr;
+
+      StringVector directories;
+      DQM4HEP::tokenize(subDirName, directories, "/");
+
+      if(directories.empty())
+        return nullptr;
+
+      const ParameterDirectory *pDirectory(this);
+
+      for(auto iter = directories.begin(), endIter = directories.end() ; endIter != iter ; ++iter)
+      {
+        auto findIter = pDirectory->find(*iter);
+
+        if(findIter == pDirectory->end())
+          return nullptr;
+
+        pDirectory = findIter->second;
+      }
+
+      return (this == pDirectory ? nullptr : pDirectory);
     }
 
   }

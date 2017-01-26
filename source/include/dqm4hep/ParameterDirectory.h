@@ -37,20 +37,21 @@ namespace dqm4hep {
 
   namespace core {
 
-    class ParameterHandle;
+    class ConfigurationHandle;
 
     /**
      * ParameterDirectory class
      */
     class ParameterDirectory
     {
+      friend class ConfigurationHandle;
     public:
       typedef std::map<std::string, ParameterDirectory*>  ParameterDirectoryMap;
       typedef ParameterDirectoryMap::iterator iterator;
       typedef ParameterDirectoryMap::const_iterator const_iterator;
 
       /**
-       * [createToLevelDirectory description]
+       * Create a top level directory. Ownership transfered to caller
        */
       static ParameterDirectory *createToLevelDirectory();
 
@@ -60,91 +61,99 @@ namespace dqm4hep {
       ~ParameterDirectory();
 
       /**
-       * Get the directory name
+       * Get the directory name, i.e 'thisDir'
        */
       const std::string &getName() const;
 
       /**
-       *
+       * Get the directory full name i.e '/dir/subDir/thisDir'
        */
       std::string getFullName() const;
 
       /**
        * Create a new subdirectory. If already exists, returns the existing one
+       * Empty name is invalid
        *
        * @param name the name of the directory to create
        */
       ParameterDirectory *mkdir(const std::string &name);
 
       /**
+       * Remove the target directory
        *
+       * @param name the sub-directory name
        */
       bool rmdir(const std::string &name);
 
       /**
+       * Printout all parameters in this directory, optionally recursively
        *
+       * @param recursive whether to printout parameters in all sub-directories
        */
-      void ls(bool recursive = false);
+      void ls(bool recursive = false) const;
 
       /**
+       * Whether the sub-directory exists. Can be 'dir' or '/dir/dir2/dir3'
        *
+       * @param name the sub-directory name
        */
       bool dirExists(const std::string &name) const;
 
       /**
-       *
+       * Get the stored parameters
        */
       const Parameters &getParameters() const;
 
       /**
-       *
+       * Get the stored parameters
        */
       Parameters &getParameters();
 
       /**
-       *
+       * Create a configuration handle with this directory
        */
-      ParameterHandle createHandle();
+      ConfigurationHandle createHandle();
 
       /**
-       * [createHandle description]
-       * @param  name [description]
-       * @return      [description]
+       * Create a configuration handle with the target sub-directory
+       * @param  name the sub-directory name
        */
-      ParameterHandle createHandle(const std::string &name);
+      ConfigurationHandle createHandle(const std::string &name);
 
       /**
-       *
+       * Get the list of sub-directories
        */
       StringVector getDirectorList() const;
 
       /**
-       *
+       * Get a begin iterator to sub-directory list
        */
       iterator begin();
 
       /**
-       *
+       * Get an end iterator to sub-directory list
        */
       iterator end();
 
       /**
-       *
+       * Get a begin const_iterator to sub-directory list
        */
       const_iterator begin() const;
 
       /**
-       *
+       * Get an end const_iterator to sub-directory list
        */
       const_iterator end() const;
 
       /**
-       *
+       * Find a sub-directory. Can only be a direct sub-directory.
+       * Directories like '/dir' '/dir/dir2' are discarded.
        */
       iterator find(const std::string &name);
 
       /**
-       *
+      * Find a sub-directory. Can only be a direct sub-directory.
+      * Directories like '/dir' '/dir/dir2' are discarded.
        */
       const_iterator find(const std::string &name) const;
 
@@ -155,15 +164,30 @@ namespace dqm4hep {
       ParameterDirectory(const std::string &name, ParameterDirectory *pParent);
 
       /**
-       *
+      * Printout all parameters in this directory, optionally recursively
+      *
+      * @param recursive whether to printout parameters in all sub-directories
+      * @param depth the sub-directory depth used for printout formatting
        */
-      void ls(bool recursive, unsigned int depth);
+      void ls(bool recursive, unsigned int depth) const;
+
+      /**
+       * Get a sub-directory. Returns nullptr if not found
+       * @param  subDirName the sub-directory name
+       */
+      ParameterDirectory *getSubDirectory(const std::string &subDirName);
+
+      /**
+      * Get a sub-directory. Returns nullptr if not found
+      * @param  subDirName the sub-directory name
+       */
+      const ParameterDirectory *getSubDirectory(const std::string &subDirName) const;
 
     private:
-      std::string                         m_name;
-      ParameterDirectory                 *m_pParentDirectory;
-      Parameters                          m_parameters;
-      ParameterDirectoryMap               m_subDirectories;
+      std::string                         m_name;               ///< The directory name
+      ParameterDirectory                 *m_pParentDirectory;   ///< The parent directory pointer
+      Parameters                          m_parameters;         ///< The parameters stored in this directory
+      ParameterDirectoryMap               m_subDirectories;     ///< The sub-directory map
     };
 
   }

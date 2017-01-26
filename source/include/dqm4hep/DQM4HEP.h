@@ -495,6 +495,23 @@ namespace dqm4hep {
 
     //-------------------------------------------------------------------------------------------------
 
+    template <>
+    inline bool DQM4HEP::stringToType(const std::string &s, std::string &t)
+    {
+      t = s;
+      return true;
+    }
+
+    //-------------------------------------------------------------------------------------------------
+
+    template <>
+    inline std::string DQM4HEP::typeToString(const std::string &t)
+    {
+      return t;
+    }
+
+    //-------------------------------------------------------------------------------------------------
+
     template <class T>
     inline bool DQM4HEP::stringToType(const std::string &s, std::vector<T> &t)
     {

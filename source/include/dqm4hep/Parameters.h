@@ -102,6 +102,11 @@ namespace dqm4hep {
       template <typename T>
       void set(const std::string &name, const T &value);
 
+      /**
+       * Remove all parameters
+       */
+      void reset();
+
     protected:
       ParameterMap                     m_parametersMap;     ///< The parameter map (string -> string)
     };

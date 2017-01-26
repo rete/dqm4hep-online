@@ -38,14 +38,14 @@ namespace dqm4hep {
 
     Parameters::Parameters()
     {
-
+      /* nop */
     }
 
     //-------------------------------------------------------------------------------------------------
 
     Parameters::~Parameters()
     {
-
+      /* nop */
     }
 
     //-------------------------------------------------------------------------------------------------
@@ -77,6 +77,13 @@ namespace dqm4hep {
     bool Parameters::exists(const std::string &name) const
     {
       return (m_parametersMap.find(name) != m_parametersMap.end());
+    }
+
+    //-------------------------------------------------------------------------------------------------
+
+    void Parameters::reset()
+    {
+      m_parametersMap.clear();
     }
 
   }

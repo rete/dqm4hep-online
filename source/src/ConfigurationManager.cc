@@ -103,10 +103,14 @@ namespace dqm4hep {
         return "";
     }
 
+    //-------------------------------------------------------------------------------------------------
+
     void ConfigurationManager::printConfiguration() const
     {
       m_pRootParameterDirectory->ls(true);
     }
+
+    //-------------------------------------------------------------------------------------------------
 
     ConfigurationHandle ConfigurationManager::createHandle()
     {

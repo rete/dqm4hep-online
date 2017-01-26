@@ -29,6 +29,8 @@
 #ifndef CONFIGURATIONIO_H
 #define CONFIGURATIONIO_H
 
+#include "dqm4hep/DQM4HEP.h"
+#include "dqm4hep/ParameterDirectory.h"
 
 namespace dqm4hep {
 
@@ -46,29 +48,29 @@ namespace dqm4hep {
      /**
       * Destructor
       */
-     virtual ~ConfigurationIO();
+     virtual ~ConfigurationIO() {}
 
      /**
-      * [read description]
-      * @param  input              [description]
-      * @param  pTopLevelDirectory [description]
-      * @return                    [description]
+      * Read settings from the input and store the read parameters into the parameter directory
+      *
+      * @param  input the input source. Can be a file name or database descriptor to decode.
+      * @param  pDirectory the top-level directory to store parameters
       */
-     virtual StatusCode read(const std::string &input, ParameterDirectory *pTopLevelDirectory) = 0;
+     virtual StatusCode read(const std::string &input, ParameterDirectory *pDirectory) = 0;
 
      /**
-      * [write description]
-      * @param  output             [description]
-      * @param  pTopLevelDirectory [description]
-      * @return                    [description]
+      * Write settings from the directory into the output
+      *
+      * @param  output the output where to store parameters. Can be a file or database descriptor to decode.
+      * @param  pDirectory the top-level directory to pull parameters from
       */
-     virtual StatusCode write(const std::string &output, const ParameterDirectory *pTopLevelDirectory);
+     virtual StatusCode write(const std::string &output, ParameterDirectory *pDirectory) = 0;
 
      /**
-      * [type description]
+      * Get the configuration IO type (i.e json, xml, database)
       * @return [description]
       */
-     virtual std::string type() const = 0;
+     virtual std::string getType() const = 0;
     };
 
   }

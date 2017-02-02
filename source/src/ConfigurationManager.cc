@@ -117,6 +117,18 @@ namespace dqm4hep {
       return std::move(ConfigurationHandle(m_pRootParameterDirectory));
     }
 
+    //-------------------------------------------------------------------------------------------------
+
+    StringVector ConfigurationManager::getAvailableConfigurationIOs() const
+    {
+      StringVector configurationIOs;
+
+      for(auto iter = m_configurationIOMap.begin(), endIter = m_configurationIOMap.end() ; endIter != iter ; ++iter)
+        configurationIOs.push_back(iter->second->getType());
+
+      return std::move(configurationIOs);
+    }
+
   }
 
 }

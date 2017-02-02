@@ -86,6 +86,11 @@ namespace dqm4hep {
       */
      ConfigurationHandle createHandle();
 
+     /**
+      *
+      */
+     StringVector getAvailableConfigurationIOs() const;
+
    private:
      /**
       *

@@ -36,6 +36,8 @@ namespace dqm4hep {
 
   namespace core {
 
+    class ConfigurationHandle;
+
     /**
      * RunControlInterface class
      *
@@ -77,6 +79,13 @@ namespace dqm4hep {
        * Callback method on run control server shutdown
        */
       virtual void onServerShutdown() {}
+
+      /**
+       * Read user settings from configuration handle
+       *
+       * @param handle the configuration handle
+       */
+       virtual Status readSettings(const ConfigurationHandle &handle) = 0;
 
     protected:
       /**

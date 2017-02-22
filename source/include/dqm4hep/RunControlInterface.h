@@ -85,7 +85,7 @@ namespace dqm4hep {
        *
        * @param handle the configuration handle
        */
-       virtual Status readSettings(const ConfigurationHandle &handle) = 0;
+       virtual StatusCode readSettings(const ConfigurationHandle &handle) = 0;
 
     protected:
       /**

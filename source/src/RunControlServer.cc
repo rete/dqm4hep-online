@@ -40,9 +40,9 @@ namespace dqm4hep {
       m_pServer = new net::Server(name);
 
       // create services and request handlers
-      m_pRunService = Network::Server::createRCActionService(m_pServer, m_pServer->getName());
+      m_pRunService = Network::Server::createRCActionService(m_pServer, m_pServer->name());
 
-      Network::Server::createRCRunInfoRequestHandler(m_pServer, m_pServer->getName(), this, &RunControlServer::handleRunInfoRequest);
+      Network::Server::createRCRunInfoRequestHandler(m_pServer, m_pServer->name(), this, &RunControlServer::handleRunInfoRequest);
 
       // the run control
       m_pRunControl = new RunControl(name);
@@ -114,11 +114,11 @@ namespace dqm4hep {
 
     void RunControlServer::handleRunInfoRequest(const Json::Value &/*request*/, Json::Value &response)
     {
-      response["state"] = static_cast<int>(m_pRunControl->getRunState());
-      response["runcontrol"] = m_pRunControl->getName();
+      response["state"] = static_cast<int>(m_pRunControl->runState());
+      response["runcontrol"] = m_pRunControl->name();
 
       Json::Value runValue;
-      this->runToJson(m_pRunControl->getRun(), runValue);
+      this->runToJson(m_pRunControl->run(), runValue);
 
       response["run"] = runValue;
     }
@@ -127,19 +127,19 @@ namespace dqm4hep {
 
     void RunControlServer::runToJson(const Run &run, Json::Value &value)
     {
-      value["number"] = run.getRunNumber();
-      value["start"] = int64_t(std::chrono::system_clock::to_time_t(run.getStartTime()));
-      value["end"] = int64_t(std::chrono::system_clock::to_time_t(run.getEndTime()));
-      value["detector"] = run.getDetectorName();
-      value["description"] = run.getDescription();
+      value["number"] = run.runNumber();
+      value["start"] = int64_t(std::chrono::system_clock::to_time_t(run.startTime()));
+      value["end"] = int64_t(std::chrono::system_clock::to_time_t(run.endTime()));
+      value["detector"] = run.detectorName();
+      value["description"] = run.description();
 
       Json::Value runParameters;
-      const StringVector runParameterKeys(run.getParameterKeys());
+      const StringVector runParameterKeys(run.parameterKeys());
 
       for(auto iter = runParameterKeys.begin(), endIter = runParameterKeys.end() ; endIter != iter ; ++iter)
       {
         std::string parameterValue;
-        run.getParameter(*iter, parameterValue);
+        run.parameter(*iter, parameterValue);
         runParameters[*iter] = parameterValue;
       }
 
@@ -152,7 +152,7 @@ namespace dqm4hep {
     {
       Json::Value runActionValue;
       runActionValue["action"] = "start";
-      runActionValue["runcontrol"] = m_pRunControl->getName();
+      runActionValue["runcontrol"] = m_pRunControl->name();
 
       Json::Value runValue;
       this->runToJson(run, runValue);
@@ -167,10 +167,10 @@ namespace dqm4hep {
     {
       Json::Value runActionValue;
       runActionValue["action"] = "stop";
-      runActionValue["runcontrol"] = m_pRunControl->getName();
+      runActionValue["runcontrol"] = m_pRunControl->name();
 
       Json::Value runValue;
-      this->runToJson(m_pRunControl->getRun(), runValue);
+      this->runToJson(m_pRunControl->run(), runValue);
       runActionValue["run"] = runValue;
 
       m_pRunService->update(runActionValue);

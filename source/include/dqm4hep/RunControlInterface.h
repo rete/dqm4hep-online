@@ -29,6 +29,7 @@
 #ifndef RUNCONTROLINTERFACE_H
 #define RUNCONTROLINTERFACE_H
 
+#include "dqm4hep/DQM4HEP.h"
 #include "dqm4hep/Run.h"
 #include "dqm4hep/RunControl.h"
 
@@ -73,19 +74,19 @@ namespace dqm4hep {
       /**
        * Callback method on run control server startup
        */
-      virtual void onServerStartup() {}
+      virtual void onServerStartup();
 
       /**
        * Callback method on run control server shutdown
        */
-      virtual void onServerShutdown() {}
+      virtual void onServerShutdown();
 
       /**
        * Read user settings from configuration handle
        *
        * @param handle the configuration handle
        */
-       virtual StatusCode readSettings(const ConfigurationHandle &handle) = 0;
+       virtual StatusCode readSettings(const ParameterMap &parameters);
 
     protected:
       /**
@@ -94,14 +95,20 @@ namespace dqm4hep {
        * @param run the run to start
        * @param password an optional password required to start the new run
        */
-      void startNewRun(const Run &run, const std::string &password = "");
+      void startNewRun(const Run &run);
 
       /**
        * End the current run
        *
        * @param password an optional password required to stop the current run
        */
-      void endCurrentRun(const std::string &password = "");
+      void endCurrentRun();
+
+      /**
+       * [getRunControl description]
+       * @return [description]
+       */
+      const RunControl *runControl() const;
 
     private:
       /**
@@ -114,6 +121,28 @@ namespace dqm4hep {
     private:
       RunControl                    *m_pRunControl;   ///< The run control instance
     };
+
+    //-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
+
+    inline void RunControlInterface::onServerStartup()
+    {
+      /* nop */
+    }
+
+    //-------------------------------------------------------------------------------------------------
+
+    inline void RunControlInterface::onServerShutdown()
+    {
+      /* nop */
+    }
+
+    //-------------------------------------------------------------------------------------------------
+
+    inline StatusCode RunControlInterface::readSettings(const ParameterMap &/*parameters*/)
+    {
+      return STATUS_CODE_SUCCESS;
+    }
 
   }
 

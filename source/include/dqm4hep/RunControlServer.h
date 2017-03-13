@@ -71,7 +71,8 @@ namespace dqm4hep {
       bool isRunning() const;
 
       /**
-       *
+       * [setRunControlInterface description]
+       * @param pRunControlInterface [description]
        */
       void setRunControlInterface(RunControlInterface *pRunControlInterface);
 

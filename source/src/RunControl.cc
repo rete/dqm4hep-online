@@ -36,30 +36,26 @@ namespace dqm4hep {
 
   namespace core {
 
-    RunControl::RunControl(const std::string &name, const std::string &password) :
+    RunControl::RunControl(const std::string &name) :
       m_runState(STOPPED_STATE),
-      m_name(name),
-      m_password(password)
+      m_name(name)
     {
       /* nop */
     }
 
     //-------------------------------------------------------------------------------------------------
 
-    const std::string &RunControl::getName() const
+    const std::string &RunControl::name() const
     {
       return m_name;
     }
 
     //-------------------------------------------------------------------------------------------------
 
-    void RunControl::startNewRun(const Run &run, const std::string &password)
+    void RunControl::startNewRun(const Run &run)
     {
-      if(!m_password.empty() && password != m_password)
-        throw StatusCodeException(STATUS_CODE_NOT_ALLOWED);
-
-      if(this->getRunState() == RUNNING_STATE)
-        this->endCurrentRun(password);
+      if(this->runState() == RUNNING_STATE)
+        this->endCurrentRun();
 
       m_run = run;
       m_run.setStartTime(CoreTool::now());
@@ -69,12 +65,9 @@ namespace dqm4hep {
 
     //-------------------------------------------------------------------------------------------------
 
-    void RunControl::endCurrentRun(const std::string &password)
+    void RunControl::endCurrentRun()
     {
-      if(!m_password.empty() && password != m_password)
-        throw StatusCodeException(STATUS_CODE_NOT_ALLOWED);
-
-      if(this->getRunState() == STOPPED_STATE)
+      if(this->runState() == STOPPED_STATE)
         return;
 
       m_run.setEndTime(CoreTool::now());
@@ -84,14 +77,14 @@ namespace dqm4hep {
 
     //-------------------------------------------------------------------------------------------------
 
-    const Run &RunControl::getRun() const
+    const Run &RunControl::run() const
     {
       return m_run;
     }
 
     //-------------------------------------------------------------------------------------------------
 
-    State RunControl::getRunState() const
+    State RunControl::runState() const
     {
       return m_runState;
     }

@@ -71,40 +71,36 @@ namespace dqm4hep {
        * Constructor
        *
        * @param name the run control name
-       * @param password an optionnal password to check while steering the run control
        */
-      RunControl(const std::string &name, const std::string &password = "");
+      RunControl(const std::string &name);
 
       /**
        * Get the run control name
        */
-      const std::string &getName() const;
+      const std::string &name() const;
 
       /**
        * Start a new run. nd the current one if running.
        *
        * @param run the run descriptor
-       * @param password an optionnal password to check (if provided in constructor)
        */
-      void startNewRun(const Run &run, const std::string &password = "");
+      void startNewRun(const Run &run);
 
       /**
        * End the current run.
-       *
-       * @param password an optionnal password to check (if provided in constructor)
        */
-      void endCurrentRun(const std::string &password = "");
+      void endCurrentRun();
 
       /**
        * Get the run descriptor.
        * @return the current run descriptor if running, the previous run descriptor else
        */
-      const Run &getRun() const;
+      const Run &run() const;
 
       /**
        * Get the run control state
        */
-      State getRunState() const;
+      State runState() const;
 
       /**
        * Get the start of run signal handler.
@@ -129,7 +125,6 @@ namespace dqm4hep {
     private:
       State                                 m_runState;           ///< The run state
       Run                                   m_run;                ///< The run descriptor
-      std::string                           m_password;           ///< An optional password to check on sor/eor
       std::string                           m_name;               ///< The run control name
       Signal<const Run &>                   m_startOfRunSignal;   ///< The start of run signal handler
       Signal<void>                          m_endOfRunSignal;     ///< The end of run signal handler

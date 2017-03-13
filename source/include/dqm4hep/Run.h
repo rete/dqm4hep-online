@@ -5,22 +5,22 @@
  * Creation date : dim. mars 29 2015
  *
  * This file is part of DQM4HEP libraries.
- * 
+ *
  * DQM4HEP is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  * based upon these libraries are permitted. Any copy of these libraries
  * must include this copyright notice.
- * 
+ *
  * DQM4HEP is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with DQM4HEP.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * @author Remi Ete
  * @copyright CNRS , IPNL
  */
@@ -32,8 +32,8 @@
 // -- dqm4hep headers
 #include "dqm4hep/DQM4HEP.h"
 
-// -- xdrstream headers
-#include "xdrstream/xdrstream.h"
+// // -- xdrstream headers
+// #include "xdrstream/xdrstream.h"
 
 // -- std headers
 #include <ctime>
@@ -45,7 +45,7 @@ namespace dqm4hep {
 
     /** Run class
      */
-    class Run : public xdrstream::Streamable
+    class Run //: public xdrstream::Streamable
     {
     public:
       /** Constructor with run number (optional)
@@ -58,23 +58,23 @@ namespace dqm4hep {
 
       /** Get the run number
        */
-      int getRunNumber() const;
+      int runNumber() const;
 
       /** Get the start time
        */
-      TimePoint getStartTime() const;
+      TimePoint startTime() const;
 
       /** Get the end time
        */
-      TimePoint getEndTime() const;
+      TimePoint endTime() const;
 
       /** Get the run description
        */
-      const std::string &getDescription() const;
+      const std::string &description() const;
 
       /** Get the detector name related to this run
        */
-      const std::string &getDetectorName() const;
+      const std::string &detectorName() const;
 
       /** Set the run number
        */
@@ -107,23 +107,23 @@ namespace dqm4hep {
        *  If the parameter is not found, the value remains unchanged
        */
       template <typename T>
-      void getParameter(const std::string &key, T &value) const;
+      void parameter(const std::string &key, T &value) const;
 
       /** Get the number of parameters
        */
-      unsigned int getNParameters() const;
+      unsigned int nParameters() const;
 
       /** Get the parameters keys
        */
-      StringVector getParameterKeys() const;
+      StringVector parameterKeys() const;
 
-      xdrstream::Status stream(xdrstream::StreamingMode mode, xdrstream::IODevice *pDevice,
-          xdrstream::xdr_version_t version = 0);
+      // xdrstream::Status stream(xdrstream::StreamingMode mode, xdrstream::IODevice *pDevice,
+      //     xdrstream::xdr_version_t version = 0);
 
     protected:
       int                                    m_runNumber;
-      TimePoint                           m_startTime;
-      TimePoint                           m_endTime;
+      TimePoint                              m_startTime;
+      TimePoint                              m_endTime;
       std::string                            m_detectorName;
       std::string                            m_description;
       std::map<std::string, std::string>     m_parametersMap;
@@ -137,9 +137,9 @@ namespace dqm4hep {
     inline std::ostream &operator <<(std::ostream &out, const Run &run)
     {
       out << "Run :\n"
-          "  -> run number : " << run.getRunNumber() << "\n"
-          "  -> detector : " << run.getDetectorName() << "\n"
-          "  -> description : " << run.getDescription() << "\n"
+          "  -> run number : " << run.runNumber() << "\n"
+          "  -> detector : " << run.detectorName() << "\n"
+          "  -> description : " << run.description() << "\n"
           "  -> parameters : \n";
 
       for(auto iter = run.m_parametersMap.begin(), endIter = run.m_parametersMap.end() ;
@@ -151,35 +151,35 @@ namespace dqm4hep {
 
     //-------------------------------------------------------------------------------------------------
 
-    inline int Run::getRunNumber() const
+    inline int Run::runNumber() const
     {
       return m_runNumber;
     }
 
     //-------------------------------------------------------------------------------------------------
 
-    inline TimePoint Run::getStartTime() const
+    inline TimePoint Run::startTime() const
     {
       return m_startTime;
     }
 
     //-------------------------------------------------------------------------------------------------
 
-    inline TimePoint Run::getEndTime() const
+    inline TimePoint Run::endTime() const
     {
       return m_endTime;
     }
 
     //-------------------------------------------------------------------------------------------------
 
-    inline const std::string &Run::getDescription() const
+    inline const std::string &Run::description() const
     {
       return m_description;
     }
 
     //-------------------------------------------------------------------------------------------------
 
-    inline const std::string &Run::getDetectorName() const
+    inline const std::string &Run::detectorName() const
     {
       return m_detectorName;
     }
@@ -230,7 +230,7 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
 
     template <typename T>
-    inline void Run::getParameter(const std::string &key, T &value) const
+    inline void Run::parameter(const std::string &key, T &value) const
     {
       std::map<std::string, std::string>::const_iterator findIter = m_parametersMap.find(key);
 
@@ -251,7 +251,7 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
 
     template <>
-    inline void Run::getParameter(const std::string &key, std::string &value) const
+    inline void Run::parameter(const std::string &key, std::string &value) const
     {
       std::map<std::string, std::string>::const_iterator findIter = m_parametersMap.find(key);
 
@@ -263,13 +263,13 @@ namespace dqm4hep {
 
     //-------------------------------------------------------------------------------------------------
 
-    inline unsigned int Run::getNParameters() const
+    inline unsigned int Run::nParameters() const
     {
       return m_parametersMap.size();
     }
 
   }
 
-} 
+}
 
 #endif  //  DQM4HEP_RUN_H

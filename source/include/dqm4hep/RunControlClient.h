@@ -5,22 +5,22 @@
  * Creation date : mer. nov. 12 2014
  *
  * This file is part of DQM4HEP libraries.
- * 
+ *
  * DQM4HEP is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  * based upon these libraries are permitted. Any copy of these libraries
  * must include this copyright notice.
- * 
+ *
  * DQM4HEP is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with DQM4HEP.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * @author Remi Ete
  * @copyright CNRS , IPNL
  */
@@ -32,9 +32,7 @@
 // -- dqm4hep headers
 #include "dqm4hep/DQM4HEP.h"
 #include "dqm4hep/RunControl.h"
-
-// -- dim headers
-#include "dic.hxx"
+#include "dqm4hep/Client.h"
 
 namespace dqm4hep {
 
@@ -44,32 +42,46 @@ namespace dqm4hep {
 
     /** RunControlClient interface
      */
-    class RunControlClient : public RunControl
+    class RunControlClient
     {
     public:
       /** Constructor
        */
-      RunControlClient() : RunControl () {}
+      RunControlClient(net::Client *pClient, const std::string &rcName);
 
       /** Destructor
        */
-      virtual ~RunControlClient() {}
+      ~RunControlClient();
 
-      /** Connect to the service.
+      /**
+       *
        */
-      virtual StatusCode connectToService() = 0;
+      Signal<const Run &> &onStartOfRun();
 
-      /** Disconnect from the service
+      /**
+       *
        */
-      virtual StatusCode disconnectFromService() = 0;
+      Signal<void> &onEndOfRun();
 
-      /** Whether the client is connected to the service
+      /**
+       * [getRunInfo description]
+       * @param rcName   [description]
+       * @param runState [description]
+       * @param run      [description]
        */
-      virtual bool isConnectedToService() const = 0;
+      void runInfo(std::string &rcName, State &runState, Run &run) const;
+
+    private:
+      void handleRunAction(const Json::Value &runAction);
+      void jsonToRun(const Json::Value &value, Run &run) const;
+
+    private:
+      net::Client                      *m_pClient;
+      RunControl                       *m_pRunControl;
     };
 
   }
 
-} 
+}
 
 #endif  //  DQM4HEP_RUNCONTROLCLIENT_H

@@ -96,7 +96,7 @@ namespace dqm4hep {
          * @param function the controller method that will receive the service updates
          */
         template <typename Controller>
-        static void subscribetoRCAction(net::Client *pClient, const std::string &rcName,
+        static void subscribeToRCAction(net::Client *pClient, const std::string &rcName,
         Controller *pController, void (Controller::*function)(const Json::Value &runAction));
 
         /**
@@ -111,9 +111,9 @@ namespace dqm4hep {
 
     public:
       // public constant keys defining service names
+      static constexpr const char *rcPrefix                = "/dqm4hep/runcontrol/";
       static constexpr const char *rcAction                = "action";
       static constexpr const char *rcRunInfo               = "runinfo";
-
     };
 
     //-------------------------------------------------------------------------------------------------
@@ -122,16 +122,16 @@ namespace dqm4hep {
     template <typename Controller>
     void Network::Server::createRCRunInfoRequestHandler(net::Server *pServer, const std::string &rcName, Controller *pController, void (Controller::*function)(const Json::Value &request, Json::Value &response))
     {
-      pServer->createRequestHandler<Json::Value>(rcName, rcRunInfo, pController, function);
+      pServer->createRequestHandler<Json::Value>(rcPrefix + rcName + "/" + rcRunInfo, pController, function);
     }
 
     //-------------------------------------------------------------------------------------------------
 
     template <typename Controller>
-    void Network::Client::subscribetoRCAction(net::Client *pClient, const std::string &rcName,
+    void Network::Client::subscribeToRCAction(net::Client *pClient, const std::string &rcName,
     Controller *pController, void (Controller::*function)(const Json::Value &runAction))
     {
-      pClient->subscribe(rcName, rcAction, pController, function);
+      pClient->subscribe(rcPrefix + rcName + "/" + rcAction, pController, function);
     }
 
   }

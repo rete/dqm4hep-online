@@ -31,10 +31,10 @@
 namespace dqm4hep {
 
   namespace core {
-    
+
     net::Service<Json::Value> *Network::Server::createRCActionService(net::Server *pServer, const std::string &rcName)
     {
-      return pServer->createService<Json::Value>(rcName, rcAction);
+      return pServer->createService<Json::Value>(rcPrefix + rcName + "/" + rcAction);
     }
 
     //-------------------------------------------------------------------------------------------------
@@ -42,7 +42,7 @@ namespace dqm4hep {
 
     void Network::Client::getRunInfo(net::Client *pClient, const std::string &rcName, Json::Value &runInfo)
     {
-      pClient->sendRequest(rcName, rcRunInfo, Json::Value(), runInfo);
+      pClient->sendRequest(rcPrefix + rcName + "/" + rcRunInfo, Json::Value(), runInfo);
     }
 
   }

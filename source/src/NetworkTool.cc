@@ -40,7 +40,7 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
     //-------------------------------------------------------------------------------------------------
 
-    void Network::Client::getRunInfo(net::Client *pClient, const std::string &rcName, Json::Value &runInfo)
+    void Network::Client::runInfo(net::Client *pClient, const std::string &rcName, Json::Value &runInfo)
     {
       pClient->sendRequest(rcPrefix + rcName + "/" + rcRunInfo, Json::Value(), runInfo);
     }

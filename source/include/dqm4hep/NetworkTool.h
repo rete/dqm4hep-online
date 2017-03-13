@@ -105,7 +105,7 @@ namespace dqm4hep {
          * @param rcName  [description]
          * @param runInfo [description]
          */
-        static void getRunInfo(net::Client *pClient, const std::string &rcName, Json::Value &runInfo);
+        static void runInfo(net::Client *pClient, const std::string &rcName, Json::Value &runInfo);
       };
 
 

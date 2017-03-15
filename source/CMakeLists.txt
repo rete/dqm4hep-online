@@ -137,22 +137,22 @@ INSTALL (
 # -------------------------------------------------
 # build run control interface executable
 
-ADD_EXECUTABLE( dqm4hep_run_control main/dqm4hep_run_control.cc )
-TARGET_LINK_LIBRARIES( dqm4hep_run_control ${PROJECT_NAME} )
-
-INSTALL (
-    TARGETS dqm4hep_run_control
-    RUNTIME DESTINATION bin
-)
+# ADD_EXECUTABLE( dqm4hep_run_control main/dqm4hep_run_control.cc )
+# TARGET_LINK_LIBRARIES( dqm4hep_run_control ${PROJECT_NAME} )
+#
+# INSTALL (
+#     TARGETS dqm4hep_run_control
+#     RUNTIME DESTINATION bin
+# )
 
 # -------------------------------------------------
 # build run control server executable
 
-ADD_EXECUTABLE( dqm4hep_start_run_control_server main/dqm4hep_start_run_control_server.cc )
-TARGET_LINK_LIBRARIES( dqm4hep_start_run_control_server ${PROJECT_NAME} )
+ADD_EXECUTABLE( dqm4hep-start-run-control-server main/dqm4hep_start_run_control_server.cc )
+TARGET_LINK_LIBRARIES( dqm4hep-start-run-control-server ${PROJECT_NAME} )
 
 INSTALL (
-    TARGETS dqm4hep_start_run_control_server
+    TARGETS dqm4hep-start-run-control-server
     RUNTIME DESTINATION bin
 )
 
@@ -164,7 +164,7 @@ IF( BUILD_EVB )
 
 	ADD_EXECUTABLE( dqm4hep_start_shm_driver main/dqm4hep_start_shm_driver.cc )
 	TARGET_LINK_LIBRARIES( dqm4hep_start_shm_driver ${PROJECT_NAME} )
-	
+
 	INSTALL (
 	    TARGETS dqm4hep_start_shm_driver
 	    RUNTIME DESTINATION bin
@@ -186,8 +186,8 @@ IF( BUILD_EXAMPLES )
         TARGETS RandomModuleExample
         LIBRARY DESTINATION lib
     )
-    
-    
+
+
     ADD_SHARED_LIBRARY( StandaloneRandomModuleExample examples/module/standaloneRandom/StandaloneRandomModule.cc )
     TARGET_LINK_LIBRARIES( StandaloneRandomModuleExample ${PROJECT_NAME} )
 
@@ -195,9 +195,7 @@ IF( BUILD_EXAMPLES )
         TARGETS StandaloneRandomModuleExample
         LIBRARY DESTINATION lib
     )
-  
+
 ENDIF()
 
 INSTALL_DIRECTORY( include DESTINATION . FILES_MATCHING PATTERN "*.h" )
-
-

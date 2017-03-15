@@ -29,7 +29,9 @@
 #include "dqm4hep/DQM4HEP.h"
 #include "dqm4hep/Logging.h"
 #include "dqm4hep/CoreTool.h"
-#include "dqm4hep/RunControlService.h"
+#include "dqm4hep/PluginManager.h"
+#include "dqm4hep/RunControlServer.h"
+#include "dqm4hep/RunControlInterface.h"
 
 // -- tclap headers
 #include "tclap/CmdLine.h"
@@ -38,10 +40,6 @@
 // -- std headers
 #include <iostream>
 #include <signal.h>
-
-#ifdef DQM4HEP_USE_MONGOOSE
-#include <mongoose/Server.h>
-#endif
 
 using namespace std;
 using namespace dqm4hep::core;
@@ -66,6 +64,32 @@ void seg_viol_signal_handling(int signal)
 {
   LOG4CXX_WARN( dqmMainLogger , "*** SIGN VIOL ***" );
   LOG4CXX_WARN( dqmMainLogger , "Caught signal " << signal << ". Stopping the application." );
+
+  process = false;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void parseParameterArg(const std::vector<std::string> &args, ParameterMap &parametersMap)
+{
+  for(auto iter = args.begin(), endIter = args.end() ; endIter != iter ; ++iter)
+  {
+    std::string arg(*iter);
+    size_t pos = arg.find_first_of("=");
+
+    if(pos == std::string::npos)
+    {
+      LOG4CXX_WARN( dqmMainLogger, "Parameter '" << arg << "' : wrong parsing !" );
+      continue;
+    }
+
+    std::string key = arg.substr(0, pos);
+    std::string value = arg.substr(pos+1);
+
+    parametersMap[ key ] = value;
+
+    LOG4CXX_DEBUG( dqmMainLogger, "Read key '" << key << "' , value '" << value << "'" );
+  }
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -87,14 +111,14 @@ int main(int argc, char* argv[])
       , "string");
   pCommandLine->add(runControlNameArg);
 
-  TCLAP::ValueArg<std::string> passwordArg(
-      "k"
-      , "password"
-      , "The run control password to execute command from interfaces"
+  TCLAP::ValueArg<std::string> runControlInterfaceArg(
+      "i"
+      , "run-control-interface"
+      , "The run control interface name. Loaded from plugin manager"
       , false
       , ""
       , "string");
-  pCommandLine->add(passwordArg);
+  pCommandLine->add(runControlInterfaceArg);
 
   TCLAP::ValueArg<std::string> loggerConfigArg(
       "l"
@@ -125,17 +149,14 @@ int main(int argc, char* argv[])
       , &allowedLevelsContraint);
   pCommandLine->add(verbosityArg);
 
-
-#ifdef DQM4HEP_USE_MONGOOSE
-  TCLAP::ValueArg<unsigned int> httpPortArg(
+  TCLAP::MultiArg<std::string> parameterArg(
       "p"
-      , "http-port"
-      , "The http port to listen on (with mongoose)"
+      , "parameter"
+      , "A user parameter to pass to the run control interface"
       , false
-      , 8082
-      , "unsigned int");
-  pCommandLine->add(httpPortArg);
-#endif
+      , "");
+  pCommandLine->add(parameterArg);
+
 
   // parse command line
   pCommandLine->parse(argc, argv);
@@ -149,48 +170,40 @@ int main(int argc, char* argv[])
   // install signal handlers
   LOG4CXX_INFO( dqmMainLogger , "Installing signal handlers ..." );
   signal(SIGINT,  int_key_signal_handler);
-  //	signal(SIGSEGV, seg_viol_signal_handling);
+	signal(SIGSEGV, seg_viol_signal_handling);
 
+  ParameterMap parameterMap;
+  parseParameterArg(parameterArg.getValue(), parameterMap);
 
-  std::string runControlName( runControlNameArg.getValue() );
-  std::string password( passwordArg.getValue() );
-
-  RunControlService runControlServer;
-
-  runControlServer.setRunControlName(runControlName);
-  runControlServer.setPassword(password);
-
-#ifdef DQM4HEP_USE_MONGOOSE
-  Server server( httpPortArg.getValue() );
-  server.registerController( &runControlServer );
-  server.start();
-
-  runControlServer.dumpRoutes();
-#endif
+  std::string runControlName(runControlNameArg.getValue());
+  RunControlServer runControlServer(runControlName);
 
   try
   {
-    THROW_RESULT_IF( STATUS_CODE_SUCCESS , !=, runControlServer.start() );
+    THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, PluginManager::instance()->loadLibraries());
 
-    DimServer::start(  ("DQM4HEP/RunControl/" + runControlName).c_str() );
+    RunControlInterface *pInterface = PluginManager::instance()->createPluginClass<RunControlInterface>(runControlInterfaceArg.getValue());
+
+    if(pInterface)
+    {
+      THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, pInterface->readSettings(parameterMap));
+      runControlServer.setRunControlInterface(pInterface);
+    }
+
+    runControlServer.start();
 
     while( process )
       CoreTool::sleep(std::chrono::seconds(1));
+
+    runControlServer.stop();
   }
   catch(StatusCodeException &exception)
   {
     LOG4CXX_ERROR( dqmMainLogger , "Couldn't start run control server : " << exception.toString() );
-
-#ifdef DQM4HEP_USE_MONGOOSE
-    server.stop();
-#endif
-
     return 1;
   }
 
-#ifdef DQM4HEP_USE_MONGOOSE
-  server.stop();
-#endif
+
 
   return 0;
 }

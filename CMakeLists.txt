@@ -64,7 +64,7 @@ FIND_PACKAGE( DQMNet REQUIRED )
 
 
 # ----- Include package properties -----
-FOREACH( pkg DQMCore DQMNet )
+FOREACH( pkg ROOT DQMCore DQMNet )
 
   INCLUDE_DIRECTORIES( ${${pkg}_INCLUDE_DIRS} )
   LINK_LIBRARIES( ${${pkg}_LIBRARIES} )

@@ -23,10 +23,10 @@ fi
 
 ldd ./lib/*.so
 ldd ./bin/*
-
-ctest -V
-
-if [ $? -ne 0 ]; then
-    echo "Failed to run cmake tests"
-    exit 1
-fi
+#
+# ctest -V
+#
+# if [ $? -ne 0 ]; then
+#     echo "Failed to run cmake tests"
+#     exit 1
+# fi

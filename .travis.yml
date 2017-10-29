@@ -1,0 +1,26 @@
+language: cpp
+dist: trusty
+sudo: required
+os:
+  - linux
+
+addons:
+  apt:
+    packages:
+      - libmysqlclient-dev
+
+script:
+  - ./.travis-ci.d/compile_and_test.sh
+
+before_install:
+  - ./.travis-ci.d/install_dependencies.sh
+
+compiler:
+  - gcc
+  - clang
+
+# Don't send e-mail notifications
+notifications:
+  email:
+    on_success: never
+    on_failure: always

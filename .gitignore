@@ -2,8 +2,8 @@
 /include
 /lib
 /bin
-/DQMCoreConfig.cmake
-/DQMCoreConfigVersion.cmake
+/DQMOnlineConfig.cmake
+/DQMOnlineConfigVersion.cmake
 /backup/
 /.project
 /TODO.txt

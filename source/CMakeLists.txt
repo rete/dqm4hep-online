@@ -14,12 +14,13 @@ ADD_DEFINITIONS("-Wno-long-long -Wreturn-type -Werror")
 #AUX_SOURCE_DIRECTORY( src SRC_FILES )
 SET( SRC_FILES ${SRC_FILES} src/RunControl.cc )
 SET( SRC_FILES ${SRC_FILES} src/RunControlServer.cc )
+SET( SRC_FILES ${SRC_FILES} src/RunControlInterface.cc )
 
 ADD_SHARED_LIBRARY( ${PROJECT_NAME} ${SRC_FILES} )
 
 INSTALL(
-        TARGETS ${PROJECT_NAME}
-        LIBRARY DESTINATION lib
+  TARGETS ${PROJECT_NAME}
+  LIBRARY DESTINATION lib
 )
 
 # add executable macro

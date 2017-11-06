@@ -37,6 +37,8 @@
 namespace dqm4hep {
 
   namespace online {
+    
+    class RunControlInterface;
 
     /** RunControlServer class
      */
@@ -63,6 +65,10 @@ namespace dqm4hep {
       /** Set the plugin name of the ouside interface
        */
       void setInterface(const std::string &name);
+      
+      /** Set the user parameters
+       */
+      void setUserParameters(const dqm4hep::core::StringMap &parameters);
 
       /** Run the server
        */
@@ -71,6 +77,10 @@ namespace dqm4hep {
       /** Stop the server
        */
       void stop();
+      
+      /** Get the run control
+       */
+      RunControl &runControl();
 
     private:
       void sor(dqm4hep::core::Run &run);
@@ -79,11 +89,13 @@ namespace dqm4hep {
 
     private:
       RunControl                    m_runControl;
-      dqm4hep::net::Server         *m_pServer;
-      dqm4hep::net::Service        *m_pSorService;
-      dqm4hep::net::Service        *m_pEorService;
-      bool                          m_stopFlag;
-      std::string                   m_interfaceName;
+      dqm4hep::net::Server         *m_pServer = nullptr;
+      dqm4hep::net::Service        *m_pSorService = nullptr;
+      dqm4hep::net::Service        *m_pEorService = nullptr;
+      RunControlInterface          *m_pInterface = nullptr;
+      dqm4hep::core::StringMap      m_userParameters = {};
+      bool                          m_stopFlag = false;
+      std::string                   m_interfaceName = "";
     };
 
   }

@@ -28,6 +28,7 @@
 // -- dqm4hep headers
 #include "dqm4hep/Internal.h"
 #include "dqm4hep/StatusCodes.h"
+#include "dqm4hep/PluginManager.h"
 #include "dqm4hep/Logging.h"
 #include "dqm4hep/RunControlServer.h"
 #include "DQMOnlineConfig.h"
@@ -97,6 +98,15 @@ int main(int argc, char* argv[])
       , ""
       , "string");
   pCommandLine->add(passwordArg);
+  
+  TCLAP::ValueArg<std::string> interfaceArg(
+      "i"
+      , "interface"
+      , "The run control interface to load (plugin name)"
+      , true
+      , ""
+      , "string");
+  pCommandLine->add(interfaceArg);
 
   StringVector verbosities(Logger::logLevels());
   TCLAP::ValuesConstraint<std::string> verbosityConstraint(verbosities);
@@ -108,6 +118,14 @@ int main(int argc, char* argv[])
       , "info"
       , &verbosityConstraint);
   pCommandLine->add(verbosityArg);
+  
+  TCLAP::MultiArg<std::string> parameterArg(
+      "p"
+      , "parameter"
+      , "List of parameters to pass to user run control interface"
+      , false
+      , "string");
+  pCommandLine->add(parameterArg);
 
   // parse command line
   pCommandLine->parse(argc, argv);
@@ -117,12 +135,39 @@ int main(int argc, char* argv[])
   signal(SIGINT,  int_key_signal_handler);
   //	signal(SIGSEGV, seg_viol_signal_handling);
 
+  // parse user parameters
+  const StringVector &parameters(parameterArg.getValue());
+  StringMap parameterMap;
+  
+  for(const auto &parameter : parameters)
+  {
+    StringVector keyValuePair;
+    dqm4hep::core::tokenize(parameter, keyValuePair, "=");
+    
+    if(keyValuePair.size() != 2)
+    {
+      dqm_error( "Invalid parsing of user argument: '{0}'. Expected key=value !" );
+      throw StatusCodeException(STATUS_CODE_FAILURE);
+    }
+    
+    parameterMap[keyValuePair.at(0)] = keyValuePair.at(1);
+  }
+  
+  // load user plugins
+  THROW_RESULT_IF(STATUS_CODE_SUCCESS, !=, PluginManager::instance()->loadLibraries());
+  
+  // create run control server
   runControlServer = std::make_shared<RunControlServer>();
 
   runControlServer->setName(runControlNameArg.getValue());
+  runControlServer->setInterface(interfaceArg.getValue());
+  
   if( passwordArg.isSet() )
     runControlServer->setPassword(passwordArg.getValue());
 
+  runControlServer->setUserParameters(parameterMap);
+
+  // run it !
   try
   {
     runControlServer->run();

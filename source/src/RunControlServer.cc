@@ -25,8 +25,11 @@
  * @copyright
  */
 
-
+// -- dqm4hep headers
 #include <dqm4hep/RunControlServer.h>
+#include <dqm4hep/RunControlInterface.h>
+#include <dqm4hep/PluginManager.h>
+#include <dqm4hep/Logging.h>
 
 using namespace dqm4hep::core;
 using namespace dqm4hep::net;
@@ -48,6 +51,9 @@ namespace dqm4hep {
     {
       if( m_pServer )
         delete m_pServer;
+      
+      if( m_pInterface )
+        delete m_pInterface;
     }
 
     //-------------------------------------------------------------------------------------------------
@@ -63,11 +69,48 @@ namespace dqm4hep {
     {
       m_runControl.setPassword(pwd);
     }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void RunControlServer::setInterface(const std::string &name)
+    {
+      m_interfaceName = name;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void RunControlServer::setUserParameters(const dqm4hep::core::StringMap &parameters)
+    {
+      m_userParameters = parameters;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    RunControl &RunControlServer::runControl()
+    {
+      return m_runControl;
+    }
 
     //-------------------------------------------------------------------------------------------------
 
     void RunControlServer::run()
     {
+      m_stopFlag = false;
+            
+      // create user external interface (plugin)
+      m_pInterface = PluginManager::instance()->create<RunControlInterface>(m_interfaceName);
+      
+      if( ! m_pInterface )
+      {
+        delete m_pServer;
+        dqm_error( "Couldn't find run control interface '{0}' in plugin manager", m_interfaceName );
+        throw StatusCodeException(STATUS_CODE_NOT_FOUND);
+      }
+      
+      m_pInterface->readSettings(m_userParameters);
+      m_pInterface->setServer(this);
+      
+      // create network interface
       std::string baseName = "/dqm4hep/RunControl/" + m_runControl.name() + "/";
 
       m_pServer = new dqm4hep::net::Server(m_runControl.name());
@@ -79,12 +122,23 @@ namespace dqm4hep {
       m_runControl.onEndOfRun().connect(this, &RunControlServer::eor);
 
       m_pServer->createRequestHandler(baseName + "CurrentRun", this, &RunControlServer::sendCurrentRun);
-
+      
       m_pServer->start();
-
-      while( ! m_stopFlag )
-        dqm4hep::core::sleep(dqm4hep::core::TimeDuration(1));
-
+      
+      if(m_pInterface->runBlocking())
+      {
+        // block here until stop called from outside
+        m_pInterface->run();
+      }
+      else
+      {
+        // call run and sleep
+        m_pInterface->run();
+        
+        while( ! m_stopFlag )
+          dqm4hep::core::sleep(dqm4hep::core::TimeDuration(1));        
+      }
+      
       delete m_pServer;
     }
 
@@ -92,6 +146,7 @@ namespace dqm4hep {
 
     void RunControlServer::stop()
     {
+      m_pInterface->stop();
       m_stopFlag = true;
     }
 

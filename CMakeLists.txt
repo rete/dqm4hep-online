@@ -32,7 +32,8 @@ INCLUDE( dqm4hep_settings )
 
 ###############################
 # Define options
-OPTION( INSTALL_DOC "Set to OFF to skip build/install Documentation" OFF )
+OPTION( INSTALL_DOC    "Set to OFF to skip build/install Documentation" OFF )
+OPTION( BUILD_HTTP_RC  "Set to OFF to skip build/install http run control plugin" OFF )
 
 # ----- Find ROOT package -----
 LIST( APPEND ROOT_COMPONENT_LIST Core Hist Rint HistPainter Graf Graf3d MathCore Net RIO Tree )

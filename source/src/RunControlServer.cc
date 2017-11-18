@@ -38,11 +38,9 @@ namespace dqm4hep {
 
   namespace online {
 
-    RunControlServer::RunControlServer() :
-      m_stopFlag(false),
-      m_pServer(nullptr)
+    RunControlServer::RunControlServer()
     {
-
+      /* nop */
     }
 
     //-------------------------------------------------------------------------------------------------
@@ -107,8 +105,8 @@ namespace dqm4hep {
         throw StatusCodeException(STATUS_CODE_NOT_FOUND);
       }
       
+      m_pInterface->setServer(this);      
       m_pInterface->readSettings(m_userParameters);
-      m_pInterface->setServer(this);
       
       // create network interface
       std::string baseName = "/dqm4hep/RunControl/" + m_runControl.name() + "/";
@@ -121,10 +119,12 @@ namespace dqm4hep {
       m_pEorService = m_pServer->createService(baseName + "EOR");
       m_runControl.onEndOfRun().connect(this, &RunControlServer::eor);
 
-      m_pServer->createRequestHandler(baseName + "CurrentRun", this, &RunControlServer::sendCurrentRun);
+      m_pServer->createRequestHandler(baseName + "Status", this, &RunControlServer::sendCurrentRun);
       
+      // start the server
       m_pServer->start();
       
+      // run the user plugin
       if(m_pInterface->runBlocking())
       {
         // block here until stop called from outside
@@ -136,10 +136,16 @@ namespace dqm4hep {
         m_pInterface->run();
         
         while( ! m_stopFlag )
-          dqm4hep::core::sleep(dqm4hep::core::TimeDuration(1));        
+          dqm4hep::core::sleep(dqm4hep::core::TimeDuration(1));
       }
       
-      delete m_pServer;
+      // exit the server : stop and release memory
+      m_pServer->stop();
+      
+      delete m_pServer; m_pServer = nullptr;
+      delete m_pInterface; m_pInterface = nullptr;      
+      m_pSorService = nullptr;
+      m_pEorService = nullptr;
     }
 
     //-------------------------------------------------------------------------------------------------
@@ -186,19 +192,21 @@ namespace dqm4hep {
 
     void RunControlServer::sendCurrentRun(const Buffer &request, Buffer &response)
     {
-      Json::Value jsonRun;
+      Json::Value jsonStatus, jsonRun;
       m_runControl.currentRun().toJson(jsonRun);
-      jsonRun["running"] = m_runControl.isRunning();
+      
+      jsonStatus["running"] = m_runControl.isRunning();
+      jsonStatus["run"] = jsonRun;
 
       Json::StreamWriterBuilder builder;
       builder["indentation"] = "  ";
       std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
-      std::ostringstream jsonRunStr;
-      writer->write(jsonRun, &jsonRunStr);
+      std::ostringstream jsonStatusStr;
+      writer->write(jsonStatus, &jsonStatusStr);
 
       auto model = response.createModel<std::string>();
-      std::string jsonRunStr2(jsonRunStr.str());
-      model->move(std::move(jsonRunStr2));
+      std::string jsonStatusStr2(jsonStatusStr.str());
+      model->move(std::move(jsonStatusStr2));
       response.setModel(model);
     }
 

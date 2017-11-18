@@ -46,16 +46,49 @@ namespace dqm4hep {
 
     void RunControlInterface::startNewRun(const dqm4hep::core::Run &run, const std::string &password)
     {
-      if(m_pServer)
-        m_pServer->runControl().startNewRun(run, password);
+      if(!m_pServer)
+        throw StatusCodeException(STATUS_CODE_NOT_INITIALIZED);
+
+      m_pServer->runControl().startNewRun(run, password);        
     }
     
     //-------------------------------------------------------------------------------------------------
     
-    void RunControlInterface::endCurrentRun(const std::string &password)
+    void RunControlInterface::endCurrentRun(const dqm4hep::core::StringMap &parameters, const std::string &password)
     {
-        if(m_pServer)
-          m_pServer->runControl().endCurrentRun(password);
+      if(!m_pServer)
+        throw StatusCodeException(STATUS_CODE_NOT_INITIALIZED);
+
+      m_pServer->runControl().endCurrentRun(parameters, password);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    StartOfRunSignal &RunControlInterface::onStartOfRun()
+    {
+      if(!m_pServer)
+        throw StatusCodeException(STATUS_CODE_NOT_INITIALIZED);
+
+      return m_pServer->runControl().onStartOfRun();
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    EndOfRunSignal &RunControlInterface::onEndOfRun()
+    {
+
+
+      return m_pServer->runControl().onEndOfRun();
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    const RunControl& RunControlInterface::runControl() const
+    {
+      if(!m_pServer)
+        throw StatusCodeException(STATUS_CODE_NOT_INITIALIZED);
+
+      return m_pServer->runControl();
     }
     
     //-------------------------------------------------------------------------------------------------

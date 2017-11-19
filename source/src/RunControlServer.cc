@@ -28,6 +28,7 @@
 // -- dqm4hep headers
 #include <dqm4hep/RunControlServer.h>
 #include <dqm4hep/RunControlInterface.h>
+#include <dqm4hep/OnlineRoutes.h>
 #include <dqm4hep/PluginManager.h>
 #include <dqm4hep/Logging.h>
 
@@ -109,17 +110,15 @@ namespace dqm4hep {
       m_pInterface->readSettings(m_userParameters);
       
       // create network interface
-      std::string baseName = "/dqm4hep/RunControl/" + m_runControl.name() + "/";
-
       m_pServer = new dqm4hep::net::Server(m_runControl.name());
 
-      m_pSorService = m_pServer->createService(baseName + "SOR");
+      m_pSorService = m_pServer->createService(OnlineRoutes::RunControl::sor(m_runControl.name()));
       m_runControl.onStartOfRun().connect(this, &RunControlServer::sor);
 
-      m_pEorService = m_pServer->createService(baseName + "EOR");
+      m_pEorService = m_pServer->createService(OnlineRoutes::RunControl::eor(m_runControl.name()));
       m_runControl.onEndOfRun().connect(this, &RunControlServer::eor);
 
-      m_pServer->createRequestHandler(baseName + "Status", this, &RunControlServer::sendCurrentRun);
+      m_pServer->createRequestHandler(OnlineRoutes::RunControl::status(m_runControl.name()), this, &RunControlServer::sendCurrentRun);
       
       // start the server
       m_pServer->start();

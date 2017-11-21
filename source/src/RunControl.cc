@@ -39,9 +39,7 @@ namespace dqm4hep {
 
   namespace online {
 
-    RunControl::RunControl() :
-        m_running(false),
-        m_name("Global")
+    RunControl::RunControl()
     {
       /* nop */
     }
@@ -49,7 +47,6 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
 
     RunControl::RunControl(const std::string &name) :
-        m_running(false),
         m_name(name)
     {
       /* nop */
@@ -60,7 +57,7 @@ namespace dqm4hep {
     RunControl::~RunControl()
     {
       if(this->isRunning())
-        this->endCurrentRun(m_password);
+        this->endCurrentRun(dqm4hep::core::StringMap(), m_password);
     }
 
     //-------------------------------------------------------------------------------------------------
@@ -92,7 +89,7 @@ namespace dqm4hep {
         return STATUS_CODE_NOT_ALLOWED;
 
       if(this->isRunning())
-        RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->endCurrentRun(password));
+        RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->endCurrentRun(dqm4hep::core::StringMap(), password));
 
       m_run = run;
       m_running = true;
@@ -104,34 +101,40 @@ namespace dqm4hep {
 
     //-------------------------------------------------------------------------------------------------
 
-    StatusCode RunControl::startNewRun(int runNumber, const std::string &description, const std::string &detectorName, const std::string &password)
+    StatusCode RunControl::startNewRun(int runNumber, const std::string &description, const std::string &detectorName, const dqm4hep::core::StringMap &parameters, const std::string &password)
     {
       if( ! this->checkPassword(password) )
         return STATUS_CODE_NOT_ALLOWED;
 
       if(this->isRunning())
-        RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->endCurrentRun(password));
+        RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->endCurrentRun(dqm4hep::core::StringMap(), password));
 
       m_run = Run(runNumber, description, detectorName);
-      m_running = true;
-
+      
+      for(auto &parameter : parameters)
+        m_run.setParameter(parameter.first, parameter.second);
+        
       m_sorSignal.process(m_run);
+      m_running = true;
 
       return STATUS_CODE_SUCCESS;
     }
 
     //-------------------------------------------------------------------------------------------------
 
-    StatusCode RunControl::endCurrentRun(const std::string &password)
+    StatusCode RunControl::endCurrentRun(const dqm4hep::core::StringMap &parameters, const std::string &password)
     {
       if( ! this->checkPassword(password) )
         return STATUS_CODE_NOT_ALLOWED;
 
       if( ! this->isRunning() )
         return STATUS_CODE_SUCCESS;
+        
+      for(auto &parameter : parameters)
+        m_run.setParameter(parameter.first, parameter.second);
 
-      m_running = false;
       m_eorSignal.process(m_run);
+      m_running = false;
       m_run.reset();
 
       return STATUS_CODE_SUCCESS;
@@ -160,7 +163,7 @@ namespace dqm4hep {
 
     //-------------------------------------------------------------------------------------------------
 
-    void RunControl::setPassword( const std::string &password )
+    void RunControl::setPassword(const std::string &password)
     {
       m_password = password;
     }

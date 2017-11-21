@@ -25,8 +25,12 @@
  * @copyright
  */
 
-
+// -- dqm4hep headers
 #include <dqm4hep/RunControlServer.h>
+#include <dqm4hep/RunControlInterface.h>
+#include <dqm4hep/OnlineRoutes.h>
+#include <dqm4hep/PluginManager.h>
+#include <dqm4hep/Logging.h>
 
 using namespace dqm4hep::core;
 using namespace dqm4hep::net;
@@ -35,11 +39,9 @@ namespace dqm4hep {
 
   namespace online {
 
-    RunControlServer::RunControlServer() :
-      m_stopFlag(false),
-      m_pServer(nullptr)
+    RunControlServer::RunControlServer()
     {
-
+      /* nop */
     }
 
     //-------------------------------------------------------------------------------------------------
@@ -48,6 +50,9 @@ namespace dqm4hep {
     {
       if( m_pServer )
         delete m_pServer;
+      
+      if( m_pInterface )
+        delete m_pInterface;
     }
 
     //-------------------------------------------------------------------------------------------------
@@ -63,35 +68,90 @@ namespace dqm4hep {
     {
       m_runControl.setPassword(pwd);
     }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void RunControlServer::setInterface(const std::string &name)
+    {
+      m_interfaceName = name;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void RunControlServer::setUserParameters(const dqm4hep::core::StringMap &parameters)
+    {
+      m_userParameters = parameters;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    RunControl &RunControlServer::runControl()
+    {
+      return m_runControl;
+    }
 
     //-------------------------------------------------------------------------------------------------
 
     void RunControlServer::run()
     {
-      std::string baseName = "/dqm4hep/RunControl/" + m_runControl.name() + "/";
-
+      m_stopFlag = false;
+            
+      // create user external interface (plugin)
+      m_pInterface = PluginManager::instance()->create<RunControlInterface>(m_interfaceName);
+      
+      if( ! m_pInterface )
+      {
+        delete m_pServer;
+        dqm_error( "Couldn't find run control interface '{0}' in plugin manager", m_interfaceName );
+        throw StatusCodeException(STATUS_CODE_NOT_FOUND);
+      }
+      
+      m_pInterface->setServer(this);      
+      m_pInterface->readSettings(m_userParameters);
+      
+      // create network interface
       m_pServer = new dqm4hep::net::Server(m_runControl.name());
 
-      m_pSorService = m_pServer->createService(baseName + "SOR");
+      m_pSorService = m_pServer->createService(OnlineRoutes::RunControl::sor(m_runControl.name()));
       m_runControl.onStartOfRun().connect(this, &RunControlServer::sor);
 
-      m_pEorService = m_pServer->createService(baseName + "EOR");
+      m_pEorService = m_pServer->createService(OnlineRoutes::RunControl::eor(m_runControl.name()));
       m_runControl.onEndOfRun().connect(this, &RunControlServer::eor);
 
-      m_pServer->createRequestHandler(baseName + "CurrentRun", this, &RunControlServer::sendCurrentRun);
-
+      m_pServer->createRequestHandler(OnlineRoutes::RunControl::status(m_runControl.name()), this, &RunControlServer::sendCurrentRun);
+      
+      // start the server
       m_pServer->start();
-
-      while( ! m_stopFlag )
-        dqm4hep::core::sleep(dqm4hep::core::TimeDuration(1));
-
-      delete m_pServer;
+      
+      // run the user plugin
+      if(m_pInterface->runBlocking())
+      {
+        // block here until stop called from outside
+        m_pInterface->run();
+      }
+      else
+      {
+        // call run and sleep
+        m_pInterface->run();
+        
+        while( ! m_stopFlag )
+          dqm4hep::core::sleep(dqm4hep::core::TimeDuration(1));
+      }
+      
+      // exit the server : stop and release memory
+      m_pServer->stop();
+      
+      delete m_pServer; m_pServer = nullptr;
+      delete m_pInterface; m_pInterface = nullptr;      
+      m_pSorService = nullptr;
+      m_pEorService = nullptr;
     }
 
     //-------------------------------------------------------------------------------------------------
 
     void RunControlServer::stop()
     {
+      m_pInterface->stop();
       m_stopFlag = true;
     }
 
@@ -131,19 +191,21 @@ namespace dqm4hep {
 
     void RunControlServer::sendCurrentRun(const Buffer &request, Buffer &response)
     {
-      Json::Value jsonRun;
+      Json::Value jsonStatus, jsonRun;
       m_runControl.currentRun().toJson(jsonRun);
-      jsonRun["running"] = m_runControl.isRunning();
+      
+      jsonStatus["running"] = m_runControl.isRunning();
+      jsonStatus["run"] = jsonRun;
 
       Json::StreamWriterBuilder builder;
       builder["indentation"] = "  ";
       std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
-      std::ostringstream jsonRunStr;
-      writer->write(jsonRun, &jsonRunStr);
+      std::ostringstream jsonStatusStr;
+      writer->write(jsonStatus, &jsonStatusStr);
 
       auto model = response.createModel<std::string>();
-      std::string jsonRunStr2(jsonRunStr.str());
-      model->move(std::move(jsonRunStr2));
+      std::string jsonStatusStr2(jsonStatusStr.str());
+      model->move(std::move(jsonStatusStr2));
       response.setModel(model);
     }
 

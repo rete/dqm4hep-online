@@ -13,7 +13,7 @@ IF( DOXYGEN_FOUND )
     SET( DOC_BIN_DIR "${PROJECT_BINARY_DIR}/docbuild" )
     
     # directories to search for documentation
-    SET( DOX_INPUT ../source/include/ ../source/src )
+    SET( DOX_INPUT ../source/include/dqm4hep ../source/src )
 
 
     # custom command to build documentation
@@ -27,7 +27,7 @@ IF( DOXYGEN_FOUND )
                 "${DOXYGEN_EXECUTABLE}"
         WORKING_DIRECTORY "${DOC_SRC_DIR}"
         COMMENT "Building API Documentation..."
-        DEPENDS Doxyfile CMakeLists.txt ../source/include/* ../source/src/*
+        DEPENDS Doxyfile CMakeLists.txt ../source/include/dqm4hep/* ../source/src/*
     )
 
     # add doc target

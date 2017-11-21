@@ -12,14 +12,34 @@ ADD_DEFINITIONS( "-pedantic -Wunused-value -O2" )
 ADD_DEFINITIONS("-Wno-long-long -Wreturn-type -Werror")
 
 #AUX_SOURCE_DIRECTORY( src SRC_FILES )
+SET( SRC_FILES ${SRC_FILES} src/OnlineRoutes.cc )
 SET( SRC_FILES ${SRC_FILES} src/RunControl.cc )
 SET( SRC_FILES ${SRC_FILES} src/RunControlServer.cc )
+SET( SRC_FILES ${SRC_FILES} src/RunControlInterface.cc )
+
+IF( BUILD_HTTP_RC )
+  FIND_PACKAGE( Mongoose REQUIRED )
+  
+  IF( MONGOOSE_FOUND )
+  	MESSAGE( STATUS "Check for Mongoose_INCLUDE_DIRS : ${Mongoose_INCLUDE_DIRS} -- ok" )
+  	MESSAGE( STATUS "Check for Mongoose_LIBRARIES : ${Mongoose_LIBRARIES} -- ok" )
+
+    SET(SRC_FILES ${SRC_FILES} src/plugins/HttpRunControlPlugin.cc)
+
+  	INCLUDE_DIRECTORIES( ${Mongoose_INCLUDE_DIRS} )
+  	LINK_LIBRARIES( ${Mongoose_LIBRARIES} )
+
+  ELSE()
+  	MESSAGE( SEND_ERROR "Mongoose not found. Http won't be enabled !" )
+  ENDIF()
+  
+ENDIF()
 
 ADD_SHARED_LIBRARY( ${PROJECT_NAME} ${SRC_FILES} )
 
 INSTALL(
-        TARGETS ${PROJECT_NAME}
-        LIBRARY DESTINATION lib
+  TARGETS ${PROJECT_NAME}
+  LIBRARY DESTINATION lib
 )
 
 # add executable macro

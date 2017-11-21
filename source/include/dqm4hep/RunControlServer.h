@@ -34,43 +34,79 @@
 #include <dqm4hep/RunControl.h>
 #include <dqm4hep/Server.h>
 
+#include <atomic>
+
 namespace dqm4hep {
 
   namespace online {
+    
+    class RunControlInterface;
 
-    /** RunControlServer class
+    /** 
+     *  @brief  RunControlServer class
+     *          The main run control server runner class.
+     *          May be instantiated from a main().
+     *          Act as a bridge between an external run control interface and
+     *          the applications listenning to this run control. 
      */
     class RunControlServer
     {
     public:
-      /** Constructor
+      /** 
+       *  @brief  Default constructor
        */
       RunControlServer();
 
-      /** Destructor
+      /** 
+       *  @brief  Destructor
        */
       ~RunControlServer();
 
-      /** Set the run control name
-       *  Must be called before run()
+      /** 
+       *  @brief  Set the run control name
+       *          Must be called before run()
+       *  
+       *  @param  name the run control name
        */
       void setName(const std::string &name);
 
       /**
+       *  @brief  Set the run control password
+       *          Must be called before run()
+       *
+       *  @param  password the run control password 
        */
-      void setPassword(const std::string &pwd);
+      void setPassword(const std::string &password);
 
-      /** Set the plugin name of the ouside interface
+      /** 
+       *  @brief  Set the plugin name of the ouside interface
+       *
+       *  @param  name the run control interface plugin name to load from the
+       *               plugin manager 
        */
       void setInterface(const std::string &name);
+      
+      /** 
+       *  @brief  Set the user parameters
+       *
+       *  @param  parameters the user parameters, usually extracted from cmd line 
+       */
+      void setUserParameters(const dqm4hep::core::StringMap &parameters);
 
-      /** Run the server
+      /** 
+       *  @brief  Run the server
        */
       void run();
 
-      /** Stop the server
+      /** 
+       *  @brief  Stop the server
        */
       void stop();
+      
+      /** 
+       *  @brief  Get the run control
+       */
+      RunControl &runControl();
 
     private:
       void sor(dqm4hep::core::Run &run);
@@ -78,12 +114,14 @@ namespace dqm4hep {
       void sendCurrentRun(const dqm4hep::net::Buffer &request, dqm4hep::net::Buffer &response);
 
     private:
-      RunControl                    m_runControl;
-      dqm4hep::net::Server         *m_pServer;
-      dqm4hep::net::Service        *m_pSorService;
-      dqm4hep::net::Service        *m_pEorService;
-      bool                          m_stopFlag;
-      std::string                   m_interfaceName;
+      RunControl                    m_runControl;              ///< The main run control
+      dqm4hep::net::Server         *m_pServer = nullptr;       ///< The server to run
+      dqm4hep::net::Service        *m_pSorService = nullptr;   ///< The "start of run" service 
+      dqm4hep::net::Service        *m_pEorService = nullptr;   ///< The "end of run" service
+      RunControlInterface          *m_pInterface = nullptr;    ///< The external user plugin interface
+      dqm4hep::core::StringMap      m_userParameters = {};     ///< The user parameters
+      std::atomic<bool>             m_stopFlag = {false};      ///< The stop flag to run the server
+      std::string                   m_interfaceName = "";      ///< The external user interface plugin name 
     };
 
   }

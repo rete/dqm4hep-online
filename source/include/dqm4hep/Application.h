@@ -30,41 +30,215 @@
 #define DQM4HEP_APPLICATION_H
 
 // -- dqm4hep headers
-#include "dqm4hep/DQM4HEP.h"
+#include "dqm4hep/Internal.h"
+#include "dqm4hep/Server.h"
+#include "dqm4hep/Client.h"
+#include "dqm4hep/AppEvent.h"
+#include "dqm4hep/AppEvents.h"
+#include "dqm4hep/AppEventLoop.h"
 
 namespace dqm4hep {
 
-  namespace core {
+  namespace online {
 
-    /** Application class
+    /** 
+     *  @brief  Application class
      */
     class Application
     {
-    public:
-      /** Destructor
+    public:  
+      /** 
+       *  @brief  Destructor
        */
       virtual ~Application() {}
 
-      /** Run the application
+      /** 
+       *  @brief  Parse the command line arguments.
+       *          After parsing the cmd line, the application must provide
+       *          a valid type and name. At this step the server is not yet created. 
+       *
+       *  @param  argc the argc argument from the main function
+       *  @param  argc the argv argument from the main function
        */
-      virtual StatusCode run() = 0;
+      virtual void parseCmdLine(int argc, char **argv) = 0;
+      
+      /** 
+       *  @brief  Custom application initialization function. At this step the 
+       *          server is created but is not yet running.
+       *          This is the place where the application should create:
+       *            - all needed services 
+       *            - all stats entries
+       */
+      virtual void onInit() = 0;
+      
+      /**
+       *  @brief  Process an event from the event loop 
+       *  
+       *  @param  pAppEvent the event to process
+       */
+      virtual void onEvent(AppEvent *pAppEvent) = 0;
+      
+      /**
+       *  @brief  Custom user function called just before starting the event loop.
+       *          At this step the internal server is already running.
+       *          This function may e.g send an initial event to the event loop.
+       */
+      virtual void onStart() = 0;
+      
+      /**
+       *  @brief  Custom user function called just after exiting the event loop.
+       */
+      virtual void onStop() = 0;
 
-      /** Stop the application
+      /** 
+       *  @brief  Get the application type
        */
-      virtual StatusCode exit( int returnCode ) = 0;
+      const std::string &type() const;
+      
+      /** 
+       *  @brief  Set the application type.
+       *          Throw exception if called after init() is called
+       *
+       *  @param  type the application type
+       */
+      void setType(const std::string &type);
 
-      /** Read the settings from file
+      /** 
+       *  @brief  Get the application name
        */
-      virtual StatusCode readSettings( const std::string &settingsFile ) = 0;
+      const std::string &name() const;
+      
+      /** 
+       *  @brief  Set the application name
+       *          Throw exception if called after init() is called
+       *
+       *  @param  name the application name
+       */
+      void setName(const std::string &name);
+      
+      /**
+       *  @brief  Get the application state
+       */
+      const std::string &state() const;
+      
+      /**
+       *  @brief  Change the application state
+       */
+      void setState(const std::string &state);
+      
+      /**
+       *  @brief  Create a statistics entry.
+       *  
+       *  @param  name the stat entry name
+       *  @param  description the stat entry description
+       */
+      void createStatsEntry(const std::string &name, const std::string &description);
+      
+      /**
+       *  @brief  Update the stats entry with a new value
+       */
+      void updateStats(const std::string &name, double stats);
+      
+      /**
+       *  @brief  Set whether to send statistics on update
+       *  
+       *  @param  enable
+       */
+      void enableStats(bool enable);
+      
+      /**
+       *  @brief  Whether the statistics are enabled
+       */
+      bool statsEnabled() const;
+      
+      /**
+       *  @brief  Initialize the application.
+       *          Calls userInit()
+       *  
+       *  @param  argc [description]
+       *  @param  argv [description]
+       */
+      void init(int argc, char **argv);
+      
+      /** 
+       *  @brief  Run the application
+       */
+      int exec();
 
-      /** Get the application type
+      /** 
+       *  @brief  Exit the application with the specified return code
        */
-      virtual const std::string &getType() const = 0;
+      void exit(int returnCode);
+      
+      /**
+       *  @brief  Whether the application has been initialized
+       */
+      bool initialized() const;
+      
+      /**
+       *  @brief  Whether the application is running
+       */
+      bool running() const;
+      
+      /// Client interface
+      /**
+       *  @brief  Send a request using the net client interface. 
+       *          See net::Client class.
+       *  
+       *  @param  name the command name
+       *  @param  contents the command contents to send
+       *  @param  blocking whether to receive aknowledgment while send the command
+       */
+      template <typename T>
+      void sendCommand(const std::string &name, const T &contents, bool blocking = false) const;
+      
+      /**
+       *  @brief  Send a request using the net client interface. 
+       *          See net::Client class.
+       *
+       *  @param  name the request name
+       *  @param  request the buffer to send
+       *  @param  operation the operation to perform on answer reception 
+       */
+      template <typename Operation>
+      void sendRequest(const std::string &name, const net::Buffer &request, Operation operation);
+      
+      // template <typename Controller>
+      // void queuedSubscribe(const std::string &serviceName, int priority = 50);
+      
+    private:
+      std::string                  m_type = {""};
+      std::string                  m_name = {""};
+      std::string                  m_state = {"Unknown"};
+      bool                         m_running = {false};
+      bool                         m_initialized = {false};
+      bool                         m_statsEnabled = {true};
 
-      /** Get the application name
-       */
-      virtual const std::string &getName() const = 0;
+      AppEventLoop                 m_eventLoop;
+      std::shared_ptr<net::Server> m_server = {nullptr};
+      net::Service                *m_pAppStateService = {nullptr};
+      net::Service                *m_pAppStatsService = {nullptr};
+      net::Client                  m_client;
+
+      Json::Value                  m_statistics = {};
     };
+    
+    //-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
+    
+    template <typename T>
+    inline void Application::sendCommand(const std::string &name, const T &contents, bool blocking) const
+    {
+      m_client.sendCommand(name, contents, blocking);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    template <typename Operation>
+    inline void Application::sendRequest(const std::string &name, const net::Buffer &request, Operation operation)
+    {
+      m_client.sendRequest(name, request, operation);
+    }
 
   }
 

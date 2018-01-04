@@ -41,7 +41,7 @@ namespace dqm4hep {
       if(nullptr == pAppEvent)
         return;
         
-      std::lock_guard<std::mutex> lock(m_queueMutex);
+      std::lock_guard<std::recursive_mutex> lock(m_queueMutex);
       
       // push event in the queue
       m_eventQueue.push_front(std::shared_ptr<AppEvent>(pAppEvent));
@@ -70,7 +70,7 @@ namespace dqm4hep {
     
     void AppEventLoop::clear()
     {
-      std::lock_guard<std::mutex> lock(m_queueMutex);
+      std::lock_guard<std::recursive_mutex> lock(m_queueMutex);
       m_eventQueue.clear();
     }
     
@@ -90,7 +90,7 @@ namespace dqm4hep {
         AppEventPtr event(0);
         
         {
-          std::lock_guard<std::mutex> lock(m_queueMutex);
+          std::lock_guard<std::recursive_mutex> lock(m_queueMutex);
           event = m_eventQueue.back();
           m_eventQueue.pop_back();
         }
@@ -211,13 +211,16 @@ namespace dqm4hep {
       }
     }
     
+    //-------------------------------------------------------------------------------------------------
     
+    int AppEventLoop::count(int eventType)
+    {
+      std::lock_guard<std::recursive_mutex> lock(m_queueMutex);
+      return std::count_if(m_eventQueue.begin(), m_eventQueue.end(), [&eventType](AppEventPtr ptr){
+        return (ptr->type() == eventType);
+      });
+    }
     
-    // void processException(AppEvent *pAppEvent)
-    // {
-    //   
-    // }
-
   }
 
 }

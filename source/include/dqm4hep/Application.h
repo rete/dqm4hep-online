@@ -208,12 +208,15 @@ namespace dqm4hep {
        *          using the postEvent() function with a ServiceUpdateEvent event.
        *          The received service buffer is copied and can be accessed using
        *          the method ServiceUpdateEvent::buffer() in the callback method
-       *          Application::onEvent().
+       *          Application::onEvent(). A maximum limit of posted event from the 
+       *          service can be set using the argument maxNEvents. If this limit
+       *          is reached, the service update is not posted.
        *  
-       *  @param serviceName the service name to subscribe
-       *  @param priority the priority of the event in the event queue
+       *  @param  serviceName the service name to subscribe
+       *  @param  priority the priority of the event in the event queue
+       *  @param  maxNEvents the maximum number of updates for this service to post
        */
-      void queuedSubscribe(const std::string &serviceName, int priority = 50);
+      void queuedSubscribe(const std::string &serviceName, int priority = 50, int maxNEvents = std::numeric_limits<int>::max());
       
       /**
        *  @brief  Subscribe to service. On service update, the content is posted
@@ -225,7 +228,7 @@ namespace dqm4hep {
        *          ATTN! The server thread will not be released until the event has
        *          been processed by the sendEvent method !
        *  
-       *  @param serviceName the service name to subscribe
+       *  @param  serviceName the service name to subscribe
        */
       void directSubscribe(const std::string &serviceName);
       
@@ -256,12 +259,15 @@ namespace dqm4hep {
        *          using the postEvent() function with a CommandEvent event.
        *          The received service buffer is copied and can be accessed using
        *          the method CommandEvent::buffer() in the callback method
-       *          Application::onEvent().
+       *          Application::onEvent(). A maximum limit of posted event from the 
+       *          command can be set using the argument maxNEvents. If this limit
+       *          is reached, the command handling is not posted.
        *  
-       *  @param commandName the command name to handle
-       *  @param priority the priority of the event in the event queue
+       *  @param  commandName the command name to handle
+       *  @param  priority the priority of the event in the event queue
+       *  @param  maxNEvents the maximum number of event for this command to post
        */
-      void createQueuedCommand(const std::string &commandName, int priority = 50);
+      void createQueuedCommand(const std::string &commandName, int priority = 50, int maxNEvents = std::numeric_limits<int>::max());
       
       /**
        *  @brief  Create a command handler. On command reception, the content is posted
@@ -282,7 +288,6 @@ namespace dqm4hep {
        *  @brief  NetworkHandler class
        */
       class NetworkHandler
-      // class ServiceHandler
       {
       public:
         /**
@@ -292,7 +297,7 @@ namespace dqm4hep {
          *  @param name the name of service/command/request to handle
          *  @param priority the event priority, if the event is posted
          */
-        NetworkHandler(AppEventLoop &eventLoop, const std::string &name, int priority = 50);
+        NetworkHandler(AppEventLoop &eventLoop, const std::string &name, int priority = 50, int maxNEvents = std::numeric_limits<int>::max());
         
         /**
          *  @brief  Post the service content in the event loop. The received buffer
@@ -344,6 +349,7 @@ namespace dqm4hep {
         AppEventLoop           &m_eventLoop;
         const std::string       m_name;
         const int               m_priority;
+        const int               m_maxNEvents;
       };
       
       typedef std::shared_ptr<NetworkHandler> NetworkHandlerPtr;

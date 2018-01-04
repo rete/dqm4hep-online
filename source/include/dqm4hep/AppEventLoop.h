@@ -127,17 +127,20 @@ namespace dqm4hep {
       template <typename T>
       void onException(T *pObject, void (T::*function)(AppEvent *));
       
-      // /**
-      //  *  @brief  Set whether to catch exception on event processing
-      //  *  
-      //  *  @param catchExcept the flag to set 
-      //  */
-      // void setCatchException(bool catchExcept);
-      // 
-      // /**
-      //  *  @brief  Whether to catch exception on event processing
-      //  */
-      // bool catchException() const;
+      /**
+       *  @brief  Count the number of events of the given type currently in the event queue
+       *  
+       *  @param  eventType the event type
+       */
+      int count(int eventType);
+      
+      /**
+       *  @brief  Count the number of events currently in the event queue satifying the unary predicate 
+       *  
+       *  @param  predicate the unary predicate
+       */
+      template <typename Predicate>
+      int count(Predicate predicate);
       
     private:
       void processEvent(AppEvent *pAppEvent);
@@ -152,7 +155,7 @@ namespace dqm4hep {
       typedef std::shared_ptr<AppEvent> AppEventPtr;
       
       std::deque<AppEventPtr>                      m_eventQueue = {};
-      std::mutex                                   m_queueMutex = {};
+      std::recursive_mutex                         m_queueMutex = {};
       std::recursive_mutex                         m_eventMutex = {};
       std::recursive_mutex                         m_exceptionMutex = {};
       core::Signal<AppEvent *>                     m_onEventSignal = {};
@@ -160,7 +163,6 @@ namespace dqm4hep {
       std::atomic<bool>                            m_running = {false};
       std::atomic<bool>                            m_quitFlag = {false};
       std::atomic<int>                             m_returnCode = {0};
-      // bool                                         m_catchException = {false};
     };
     
     //-------------------------------------------------------------------------------------------------
@@ -198,6 +200,15 @@ namespace dqm4hep {
     {
       std::lock_guard<std::recursive_mutex> lock(m_exceptionMutex);
       return m_onExceptionSignal.connect(pObject, function);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    template <typename Predicate>
+    inline int AppEventLoop::count(Predicate predicate)
+    {
+      std::lock_guard<std::recursive_mutex> lock(m_queueMutex);
+      return std::count_if(m_eventQueue.begin(), m_eventQueue.begin(), predicate);
     }
 
   }

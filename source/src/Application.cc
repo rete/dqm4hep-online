@@ -256,7 +256,7 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
-    void Application::queuedSubscribe(const std::string &serviceName, int priority)
+    void Application::queuedSubscribe(const std::string &serviceName, int priority, int maxNEvents)
     {
       auto findIter = m_serviceHandlerPtrMap.find(serviceName);
       
@@ -266,7 +266,7 @@ namespace dqm4hep {
         throw core::StatusCodeException(core::STATUS_CODE_ALREADY_PRESENT);
       }
       
-      auto handler = std::make_shared<NetworkHandler>(m_eventLoop, serviceName, priority);
+      auto handler = std::make_shared<NetworkHandler>(m_eventLoop, serviceName, priority, maxNEvents);
       m_serviceHandlerPtrMap.insert(NetworkHandlerPtrMap::value_type(serviceName, handler));
       
       m_client.subscribe(serviceName, handler.get(), &Application::NetworkHandler::postServiceContent);
@@ -329,7 +329,7 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
-    void Application::createQueuedCommand(const std::string &commandName, int priority)
+    void Application::createQueuedCommand(const std::string &commandName, int priority, int maxNEvents)
     {
       if(!m_server)
       {
@@ -345,7 +345,7 @@ namespace dqm4hep {
         throw core::StatusCodeException(core::STATUS_CODE_ALREADY_PRESENT);
       }
       
-      auto handler = std::make_shared<NetworkHandler>(m_eventLoop, commandName, priority);
+      auto handler = std::make_shared<NetworkHandler>(m_eventLoop, commandName, priority, maxNEvents);
       m_commandHandlerPtrMap.insert(NetworkHandlerPtrMap::value_type(commandName, handler));
       
       m_server->createCommandHandler(commandName, handler.get(), &Application::NetworkHandler::postCommandEvent);
@@ -378,10 +378,11 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
     //-------------------------------------------------------------------------------------------------
     
-    Application::NetworkHandler::NetworkHandler(AppEventLoop &eventLoop, const std::string &name, int priority) :
+    Application::NetworkHandler::NetworkHandler(AppEventLoop &eventLoop, const std::string &name, int priority, int maxNEvents) :
       m_eventLoop(eventLoop),
       m_name(name),
-      m_priority(priority)
+      m_priority(priority),
+      m_maxNEvents(maxNEvents)
     {
       /* nop */
     }
@@ -390,6 +391,17 @@ namespace dqm4hep {
     
     void Application::NetworkHandler::postServiceContent(const net::Buffer &buffer)
     {
+      int count = m_eventLoop.count([this](std::shared_ptr<AppEvent> ptr){
+        ServiceUpdateEvent *evt = dynamic_cast<ServiceUpdateEvent*>(ptr.get());
+        return (evt && evt->serviceName() == this->m_name);
+      });
+      
+      if(count >= m_maxNEvents)
+      {
+        dqm_debug( "NetworkHandler::postServiceContent(): maximum of posted service updates reached ({0}) !", m_maxNEvents );
+        return;
+      }
+      
       // copy buffer content
       std::string content;
       content.assign(buffer.begin(), buffer.size());
@@ -426,6 +438,17 @@ namespace dqm4hep {
     
     void Application::NetworkHandler::postCommandEvent(const net::Buffer &buffer)
     {
+      int count = m_eventLoop.count([this](std::shared_ptr<AppEvent> ptr){
+        CommandEvent *evt = dynamic_cast<CommandEvent*>(ptr.get());
+        return (evt && evt->commandName() == this->m_name);
+      });
+      
+      if(count >= m_maxNEvents)
+      {
+        dqm_debug( "NetworkHandler::postCommandEvent(): maximum of posted command handling reached ({0}) !", m_maxNEvents );
+        return;
+      }
+      
       // copy buffer content
       std::string content;
       content.assign(buffer.begin(), buffer.size());

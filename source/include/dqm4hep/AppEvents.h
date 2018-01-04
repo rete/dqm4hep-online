@@ -97,6 +97,36 @@ namespace dqm4hep {
       net::Buffer              m_buffer;
     };
     
+    //-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
+    
+    class RequestEvent : public AppEvent
+    {
+    public:
+      RequestEvent(const std::string &name, net::BufferModelPtr requestBufferModel, net::Buffer &response);
+      const std::string &requestName() const;
+      const net::Buffer &request() const;
+      net::Buffer &response() const;
+    private:
+      std::string              m_requestName;
+      net::Buffer              m_requestBuffer;
+      net::Buffer             &m_responseBuffer;
+    };
+    
+    //-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
+    
+    class CommandEvent : public AppEvent
+    {
+    public:
+      CommandEvent(const std::string &commandName, net::BufferModelPtr bufferModel);
+      const std::string &commandName() const;
+      const net::Buffer &buffer() const;
+    private:
+      std::string              m_commandName;
+      net::Buffer              m_buffer;
+    };
+    
 
     //-------------------------------------------------------------------------------------------------
     //-------------------------------------------------------------------------------------------------
@@ -187,6 +217,63 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
     
     inline const net::Buffer &ServiceUpdateEvent::buffer() const
+    {
+      return m_buffer;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
+    
+    inline RequestEvent::RequestEvent(const std::string &name, net::BufferModelPtr requestBufferModel, net::Buffer &response) :
+      AppEvent(AppEvent::REQUEST_HANDLING),
+      m_requestName(name),
+      m_requestBuffer(),
+      m_responseBuffer(response)
+    {
+      m_requestBuffer.setModel(requestBufferModel);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+
+    inline const std::string &RequestEvent::requestName() const
+    {
+      return m_requestName;
+    }
+
+    //-------------------------------------------------------------------------------------------------
+
+    inline const net::Buffer &RequestEvent::request() const
+    {
+      return m_requestBuffer;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+
+    inline net::Buffer &RequestEvent::response() const
+    {
+      return m_responseBuffer;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
+    
+    inline CommandEvent::CommandEvent(const std::string &commandName, net::BufferModelPtr bufferModel) :
+      AppEvent(AppEvent::COMMAND_HANDLING),
+      m_commandName(commandName)
+    {
+      m_buffer.setModel(bufferModel);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    inline const std::string &CommandEvent::commandName() const
+    {
+      return m_commandName;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    inline const net::Buffer &CommandEvent::buffer() const
     {
       return m_buffer;
     }

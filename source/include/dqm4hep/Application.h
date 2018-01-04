@@ -203,24 +203,171 @@ namespace dqm4hep {
       template <typename Operation>
       void sendRequest(const std::string &name, const net::Buffer &request, Operation operation);
       
-      // template <typename Controller>
-      // void queuedSubscribe(const std::string &serviceName, int priority = 50);
+      /**
+       *  @brief  Subscribe to service. On service update, the content is posted
+       *          using the postEvent() function with a ServiceUpdateEvent event.
+       *          The received service buffer is copied and can be accessed using
+       *          the method ServiceUpdateEvent::buffer() in the callback method
+       *          Application::onEvent().
+       *  
+       *  @param serviceName the service name to subscribe
+       *  @param priority the priority of the event in the event queue
+       */
+      void queuedSubscribe(const std::string &serviceName, int priority = 50);
+      
+      /**
+       *  @brief  Subscribe to service. On service update, the content is posted
+       *          using the sendEvent() function with a ServiceUpdateEvent event.
+       *          The received service buffer is not copied but directly passed to
+       *          the user. The buffer can be accessed using the method 
+       *          ServiceUpdateEvent::buffer() in the callback method
+       *          Application::onEvent().
+       *          ATTN! The server thread will not be released until the event has
+       *          been processed by the sendEvent method !
+       *  
+       *  @param serviceName the service name to subscribe
+       */
+      void directSubscribe(const std::string &serviceName);
+      
+      /// Server interface
+      /**
+       *  @brief  Create a new service
+       *  
+       *  @param  name the service name
+       */
+      net::Service *createService(const std::string &name);
+      
+      /**
+       *  @brief  Create a request handler. On request, the request content is posted
+       *          using the sendEvent() function with a RequestEvent event.
+       *          The received service buffer is not copied but directly passed to
+       *          the user. The request buffer and the response buffer can be accessed 
+       *          respectively using the method RequestEvent::request() and 
+       *          RequestEvent::response() in the callback method Application::onEvent().
+       *          ATTN! The server thread will not be released until the event has
+       *          been processed by the sendEvent method !
+       *  
+       *  @param requestName the request name to handle
+       */
+      void createRequestHandler(const std::string &requestName);
+      
+      /**
+       *  @brief  Create a command handler. On command reception, the content is posted
+       *          using the postEvent() function with a CommandEvent event.
+       *          The received service buffer is copied and can be accessed using
+       *          the method CommandEvent::buffer() in the callback method
+       *          Application::onEvent().
+       *  
+       *  @param commandName the command name to handle
+       *  @param priority the priority of the event in the event queue
+       */
+      void createQueuedCommand(const std::string &commandName, int priority = 50);
+      
+      /**
+       *  @brief  Create a command handler. On command reception, the content is posted
+       *          using the sendEvent() function with a CommandEvent event.
+       *          The received command buffer is not copied but directly passed to
+       *          the user. The buffer can be accessed using the method 
+       *          CommandEvent::buffer() in the callback method
+       *          Application::onEvent().
+       *          ATTN! The server thread will not be released until the event has
+       *          been processed by the sendEvent method !
+       *  
+       *  @param commandName the command name to subscribe
+       */
+      void createDirectCommand(const std::string &commandName);
       
     private:
-      std::string                  m_type = {""};
-      std::string                  m_name = {""};
-      std::string                  m_state = {"Unknown"};
-      bool                         m_running = {false};
-      bool                         m_initialized = {false};
-      bool                         m_statsEnabled = {true};
+      /**
+       *  @brief  NetworkHandler class
+       */
+      class NetworkHandler
+      // class ServiceHandler
+      {
+      public:
+        /**
+         *  @brief  Constructor
+         *  
+         *  @param eventLoop the application event loop
+         *  @param name the name of service/command/request to handle
+         *  @param priority the event priority, if the event is posted
+         */
+        NetworkHandler(AppEventLoop &eventLoop, const std::string &name, int priority = 50);
+        
+        /**
+         *  @brief  Post the service content in the event loop. The received buffer
+         *          from the service update is copied and pushed to the event queue
+         *          using the AppEventLoop::postEvent() method.
+         *          
+         *  @param  buffer the received buffer from the service update
+         */
+        void postServiceContent(const net::Buffer &buffer);
+        
+        /**
+         *  @brief  Send directly the service content. The received buffer
+         *          from the service update is not copied but directly sent to 
+         *          the user using the AppEventLoop::postEvent() method.
+         *          
+         *  @param  buffer the received buffer from the service update
+         */
+        void sendServiceContent(const net::Buffer &buffer);
+        
+        /**
+         *  @brief  Send directly the request content. The received buffer
+         *          from the request handler is not copied but directly sent to 
+         *          the user using the AppEventLoop::postEvent() method.
+         *          
+         *  @param  request the received buffer from the request handler
+         *  @param  response the buffer to send back as response
+         */
+        void sendRequestEvent(const net::Buffer &request, net::Buffer &response);
+        
+        /**
+         *  @brief  Post the command content in the event loop. The received buffer
+         *          from the command is copied and pushed to the event queue
+         *          using the AppEventLoop::postEvent() method.
+         *          
+         *  @param  buffer the received buffer from the command handler
+         */
+        void postCommandEvent(const net::Buffer &buffer);
+        
+        /**
+         *  @brief  Send directly the command content. The received buffer
+         *          from the command handler is not copied but directly sent to 
+         *          the user using the AppEventLoop::postEvent() method.
+         *          
+         *  @param  buffer the received buffer from the command handler
+         */
+        void sendCommandEvent(const net::Buffer &buffer);
+        
+      private:
+        AppEventLoop           &m_eventLoop;
+        const std::string       m_name;
+        const int               m_priority;
+      };
+      
+      typedef std::shared_ptr<NetworkHandler> NetworkHandlerPtr;
+      typedef std::map<const std::string, NetworkHandlerPtr> NetworkHandlerPtrMap;
+      
+    private:
+      std::string                  m_type = {""};                     ///< The application type
+      std::string                  m_name = {""};                     ///< The application name
+      std::string                  m_state = {"Unknown"};             ///< The application state
+      bool                         m_running = {false};               ///< Whether the application is running
+      bool                         m_initialized = {false};           ///< Whether the application is initialized
+      bool                         m_statsEnabled = {true};           ///< Whether the application statistics are available  
 
-      AppEventLoop                 m_eventLoop;
-      std::shared_ptr<net::Server> m_server = {nullptr};
-      net::Service                *m_pAppStateService = {nullptr};
-      net::Service                *m_pAppStatsService = {nullptr};
-      net::Client                  m_client;
+      AppEventLoop                 m_eventLoop;                       ///< The application event loop
+      std::shared_ptr<net::Server> m_server = {nullptr};              ///< The main server interface of the application
+      net::Service                *m_pAppStateService = {nullptr};    ///< The service for application state, updated when the state changes
+      net::Service                *m_pAppStatsService = {nullptr};    ///< The service for application statistics, updated when a statistic changes
+      net::Client                  m_client;                          ///< The main client interface of the application
+      
+      NetworkHandlerPtrMap         m_serviceHandlerPtrMap;            ///< The map handling service updates from the client interface
+      NetworkHandlerPtrMap         m_requestHandlerPtrMap;            ///< The map handling request handlers from the server interface
+      NetworkHandlerPtrMap         m_commandHandlerPtrMap;            ///< The map handling command handlers from the server interface
 
-      Json::Value                  m_statistics = {};
+      Json::Value                  m_statistics = {};                 ///< The json value handling the application statistics
     };
     
     //-------------------------------------------------------------------------------------------------
@@ -239,7 +386,7 @@ namespace dqm4hep {
     {
       m_client.sendRequest(name, request, operation);
     }
-
+    
   }
 
 } 

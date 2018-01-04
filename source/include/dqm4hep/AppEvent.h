@@ -43,6 +43,8 @@ namespace dqm4hep {
         NONE = 0,
         QUIT,
         SERVICE_UPDATE,
+        REQUEST_HANDLING,
+        COMMAND_HANDLING,
         START_OF_RUN,
         START_OF_CYCLE,
         PROCESS_EVENT,

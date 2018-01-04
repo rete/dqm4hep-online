@@ -253,7 +253,203 @@ namespace dqm4hep {
     {
       return m_running;
     }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void Application::queuedSubscribe(const std::string &serviceName, int priority)
+    {
+      auto findIter = m_serviceHandlerPtrMap.find(serviceName);
+      
+      if(m_serviceHandlerPtrMap.end() != findIter)
+      {
+        dqm_error( "Application::queuedSubscribe(): couldn't subscribe twice to service '{0}'", serviceName );
+        throw core::StatusCodeException(core::STATUS_CODE_ALREADY_PRESENT);
+      }
+      
+      auto handler = std::make_shared<NetworkHandler>(m_eventLoop, serviceName, priority);
+      m_serviceHandlerPtrMap.insert(NetworkHandlerPtrMap::value_type(serviceName, handler));
+      
+      m_client.subscribe(serviceName, handler.get(), &Application::NetworkHandler::postServiceContent);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void Application::directSubscribe(const std::string &serviceName)
+    {
+      auto findIter = m_serviceHandlerPtrMap.find(serviceName);
+      
+      if(m_serviceHandlerPtrMap.end() != findIter)
+      {
+        dqm_error( "Application::directSubscribe(): couldn't subscribe twice to service '{0}'", serviceName );
+        throw core::StatusCodeException(core::STATUS_CODE_ALREADY_PRESENT);
+      }
+      
+      auto handler = std::make_shared<NetworkHandler>(m_eventLoop, serviceName);
+      m_serviceHandlerPtrMap.insert(NetworkHandlerPtrMap::value_type(serviceName, handler));
+      
+      m_client.subscribe(serviceName, handler.get(), &Application::NetworkHandler::sendServiceContent);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    net::Service *Application::createService(const std::string &name)
+    {
+      if(!m_server)
+      {
+        dqm_error( "Application::createService(): couldn't create service '{0}', server is not yet allocated", name );
+        throw core::StatusCodeException(core::STATUS_CODE_NOT_INITIALIZED);
+      }
+      
+      return m_server->createService(name);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void Application::createRequestHandler(const std::string &requestName)
+    {
+      if(!m_server)
+      {
+        dqm_error( "Application::createRequestHandler(): couldn't create request handler '{0}', server is not yet allocated", requestName );
+        throw core::StatusCodeException(core::STATUS_CODE_NOT_INITIALIZED);
+      }
+      
+      auto findIter = m_requestHandlerPtrMap.find(requestName);
+      
+      if(m_requestHandlerPtrMap.end() != findIter)
+      {
+        dqm_error( "Application::createRequestHandler(): couldn't create twice request handler '{0}'", requestName );
+        throw core::StatusCodeException(core::STATUS_CODE_ALREADY_PRESENT);
+      }
+      
+      auto handler = std::make_shared<NetworkHandler>(m_eventLoop, requestName);
+      m_serviceHandlerPtrMap.insert(NetworkHandlerPtrMap::value_type(requestName, handler));
+      
+      m_server->createRequestHandler(requestName, handler.get(), &Application::NetworkHandler::sendRequestEvent);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void Application::createQueuedCommand(const std::string &commandName, int priority)
+    {
+      if(!m_server)
+      {
+        dqm_error( "Application::createQueuedCommand(): couldn't create command handler '{0}', server is not yet allocated", commandName );
+        throw core::StatusCodeException(core::STATUS_CODE_NOT_INITIALIZED);
+      }
+      
+      auto findIter = m_commandHandlerPtrMap.find(commandName);
+      
+      if(m_commandHandlerPtrMap.end() != findIter)
+      {
+        dqm_error( "Application::createQueuedCommand(): couldn't create command handler '{0}' twice", commandName );
+        throw core::StatusCodeException(core::STATUS_CODE_ALREADY_PRESENT);
+      }
+      
+      auto handler = std::make_shared<NetworkHandler>(m_eventLoop, commandName, priority);
+      m_commandHandlerPtrMap.insert(NetworkHandlerPtrMap::value_type(commandName, handler));
+      
+      m_server->createCommandHandler(commandName, handler.get(), &Application::NetworkHandler::postCommandEvent);
+    }
+      
+    //-------------------------------------------------------------------------------------------------
 
+    void Application::createDirectCommand(const std::string &commandName)
+    {
+      if(!m_server)
+      {
+        dqm_error( "Application::createDirectCommand(): couldn't create command handler '{0}', server is not yet allocated", commandName );
+        throw core::StatusCodeException(core::STATUS_CODE_NOT_INITIALIZED);
+      }
+      
+      auto findIter = m_commandHandlerPtrMap.find(commandName);
+      
+      if(m_commandHandlerPtrMap.end() != findIter)
+      {
+        dqm_error( "Application::createDirectCommand(): couldn't create command handler '{0}' twice", commandName );
+        throw core::StatusCodeException(core::STATUS_CODE_ALREADY_PRESENT);
+      }
+      
+      auto handler = std::make_shared<NetworkHandler>(m_eventLoop, commandName);
+      m_commandHandlerPtrMap.insert(NetworkHandlerPtrMap::value_type(commandName, handler));
+      
+      m_server->createCommandHandler(commandName, handler.get(), &Application::NetworkHandler::sendCommandEvent);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
+    
+    Application::NetworkHandler::NetworkHandler(AppEventLoop &eventLoop, const std::string &name, int priority) :
+      m_eventLoop(eventLoop),
+      m_name(name),
+      m_priority(priority)
+    {
+      /* nop */
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void Application::NetworkHandler::postServiceContent(const net::Buffer &buffer)
+    {
+      // copy buffer content
+      std::string content;
+      content.assign(buffer.begin(), buffer.size());
+      
+      // create new buffer model
+      auto bufferModel = buffer.createModel<std::string>();
+      bufferModel->move(std::move(content));
+      
+      // create the event to post, pass the copied buffer in ctor
+      ServiceUpdateEvent *pEvent = new ServiceUpdateEvent(m_name, bufferModel);
+      pEvent->setPriority(m_priority);
+      
+      // post the event !
+      m_eventLoop.postEvent(pEvent);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void Application::NetworkHandler::sendServiceContent(const net::Buffer &buffer)
+    {
+      ServiceUpdateEvent *pEvent = new ServiceUpdateEvent(m_name, buffer.model());
+      m_eventLoop.sendEvent(pEvent);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void Application::NetworkHandler::sendRequestEvent(const net::Buffer &request, net::Buffer &response)
+    {
+      RequestEvent *pEvent = new RequestEvent(m_name, request.model(), response);
+      m_eventLoop.sendEvent(pEvent);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void Application::NetworkHandler::postCommandEvent(const net::Buffer &buffer)
+    {
+      // copy buffer content
+      std::string content;
+      content.assign(buffer.begin(), buffer.size());
+      
+      // create new buffer model
+      auto bufferModel = buffer.createModel<std::string>();
+      bufferModel->move(std::move(content));
+      
+      // create the event to post, pass the copied buffer in ctor
+      CommandEvent *pEvent = new CommandEvent(m_name, bufferModel);
+      pEvent->setPriority(m_priority);
+      
+      // post the event !
+      m_eventLoop.postEvent(pEvent);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+
+    void Application::NetworkHandler::sendCommandEvent(const net::Buffer &buffer)
+    {
+      CommandEvent *pEvent = new CommandEvent(m_name, buffer.model());
+      m_eventLoop.sendEvent(pEvent);
+    }
+    
   }
 
 }

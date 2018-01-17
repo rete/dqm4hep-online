@@ -26,9 +26,9 @@
  */
 
 // -- dqm4hep headers
-#include "dqm4hep/EventSource.h"
-#include "dqm4hep/Logging.h"
-#include "dqm4hep/PluginManager.h"
+#include <dqm4hep/EventSource.h>
+#include <dqm4hep/Logging.h>
+#include <dqm4hep/PluginManager.h>
 
 namespace dqm4hep {
 

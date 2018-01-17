@@ -30,13 +30,14 @@
 #define DQM4HEP_EVENTSOURCE_H
 
 // -- dqm4hep headers
-#include "dqm4hep/StatusCodes.h"
-#include "dqm4hep/Internal.h"
-#include "dqm4hep/Event.h"
-#include "dqm4hep/EventStreamer.h"
-#include "dqm4hep/Client.h"
+#include <dqm4hep/StatusCodes.h>
+#include <dqm4hep/Internal.h>
+#include <dqm4hep/Event.h>
+#include <dqm4hep/EventStreamer.h>
+#include <dqm4hep/Client.h>
 
-#include "xdrstream/BufferDevice.h"
+// -- xdrstream headers
+#include <xdrstream/BufferDevice.h>
 
 namespace dqm4hep {
 

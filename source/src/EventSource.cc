@@ -34,6 +34,13 @@ namespace dqm4hep {
 
   namespace core {
 
+    EventSourcePtr EventSource::make_shared(const std::string &sourceName)
+    {
+      return std::shared_ptr<EventSource>(new EventSource(sourceName));
+    }
+
+    //-------------------------------------------------------------------------------------------------
+
     EventSource::EventSource(const std::string &sourceName) :
         m_sourceName(sourceName)
     {
@@ -96,8 +103,7 @@ namespace dqm4hep {
       if(m_started)
         throw core::StatusCodeException(core::STATUS_CODE_ALREADY_INITIALIZED);
       
-      auto streamerPtr = PluginManager::instance()->create<core::EventStreamer>(m_streamerName);
-      m_eventStreamer = std::shared_ptr<core::EventStreamer>(streamerPtr);
+      m_eventStreamer = PluginManager::instance()->create<core::EventStreamer>(m_streamerName);
       
       if(!m_eventStreamer)
       {
@@ -127,19 +133,19 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
-    void EventSource::sendEvent(const Event *const pEvent)
+    void EventSource::sendEvent(const EventPtr &event)
     {
       core::StringVector collectors;
 
       for(auto iter : m_collectorInfos)
         collectors.push_back(iter.first);
         
-      this->sendEvent(collectors, pEvent);
+      this->sendEvent(collectors, event);
     }
     
     //-------------------------------------------------------------------------------------------------
     
-    void EventSource::sendEvent(const std::string &collector, const Event *const pEvent)
+    void EventSource::sendEvent(const std::string &collector, const EventPtr &event)
     {
       if(m_collectorInfos.end() == m_collectorInfos.find(collector))
       {
@@ -147,21 +153,21 @@ namespace dqm4hep {
         throw core::StatusCodeException(core::STATUS_CODE_NOT_FOUND);
       }
       
-      this->sendEvent(core::StringVector({collector}), pEvent);
+      this->sendEvent(core::StringVector({collector}), event);
     }
     
     //-------------------------------------------------------------------------------------------------
     
-    void EventSource::sendEvent(const core::StringVector &collectors, const Event *const pEvent)
+    void EventSource::sendEvent(const core::StringVector &collectors, const EventPtr &event)
     {
       if(!m_started)
         throw core::StatusCodeException(core::STATUS_CODE_NOT_INITIALIZED);
         
-      if(nullptr == pEvent)
+      if(nullptr == event)
         throw core::StatusCodeException(core::STATUS_CODE_INVALID_PTR);
       
       (void)m_bufferDevice->reset();
-      auto status = m_eventStreamer->write(pEvent, m_bufferDevice.get());
+      auto status = m_eventStreamer->write(event, m_bufferDevice.get());
       
       if(!XDR_TESTBIT(status, xdrstream::XDR_SUCCESS))
       {

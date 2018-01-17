@@ -42,6 +42,9 @@
 namespace dqm4hep {
 
   namespace core {
+    
+    class EventSource;
+    typedef std::shared_ptr<EventSource> EventSourcePtr;
 
     /** 
      *  @brief  EventSource class.
@@ -51,7 +54,7 @@ namespace dqm4hep {
      *          It is possible to send events to multiple event collectors.
      *          A typical usage could be:
      *          @code
-     *          EventSource* source = new EventSource("EventBuilder");
+     *          EventSourcePtr source = EventSource::make_shared("EventBuilder");
      *          source->setStreamerName("GenericEventStreamer");
      *          source->addCollector("CentralCollector");
      *          source->addCollector("PrivateCollector");
@@ -64,13 +67,13 @@ namespace dqm4hep {
     class EventSource
     {
     public:
-      /** 
-       *  @brief  Constructor
-       *
+      /**
+       *  @brief  Factory method to create a shared pointer of event source
+       *  
        *  @param  sourceName the source name
        */
-      EventSource(const std::string &sourceName);
-      
+      EventSourcePtr make_shared(const std::string &sourceName);
+
       /**
        *  @brief  Destructor
        */
@@ -113,9 +116,9 @@ namespace dqm4hep {
        *  @brief  Send a single event to all registered collectors.
        *          The event must be serializable by using the allocated streamer (see setStreamerName()).
        *  
-       *  @param  pEvent the event pointer to serialize and send
+       *  @param  event the event pointer to serialize and send
        */
-      void sendEvent(const Event *const pEvent);
+      void sendEvent(const EventPtr &event);
       
       /**
        *  @brief  Send a single event to a single collector. The collector must have been registered
@@ -123,9 +126,9 @@ namespace dqm4hep {
        *          The event must be serializable by using the allocated streamer (see setStreamerName()).
        *
        *  @param  collector the event collector to send 
-       *  @param  pEvent the event pointer to serialize and send
+       *  @param  event the event pointer to serialize and send
        */
-      void sendEvent(const std::string &collector, const Event *const pEvent);
+      void sendEvent(const std::string &collector, const EventPtr &event);
       
     private:
       /**
@@ -154,12 +157,19 @@ namespace dqm4hep {
       /**
        *  @brief  Perform the actual event sending to the specified list of collectors
        *  
-       *  @param collectors the list of collectors
-       *  @param pEvent     [description]
+       *  @param  collectors the list of collectors
+       *  @param  event     [description]
        */
-      void sendEvent(const core::StringVector &collectors, const Event *const pEvent);
+      void sendEvent(const core::StringVector &collectors, const EventPtr &event);
 
     private:
+      /** 
+       *  @brief  Constructor
+       *
+       *  @param  sourceName the source name
+       */
+      EventSource(const std::string &sourceName);
+      
       /**
        *  @brief  CollectorInfo struct
        */

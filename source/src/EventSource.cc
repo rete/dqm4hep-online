@@ -32,7 +32,7 @@
 
 namespace dqm4hep {
 
-  namespace core {
+  namespace online {
 
     EventSourcePtr EventSource::make_shared(const std::string &sourceName)
     {
@@ -103,7 +103,7 @@ namespace dqm4hep {
       if(m_started)
         throw core::StatusCodeException(core::STATUS_CODE_ALREADY_INITIALIZED);
       
-      m_eventStreamer = PluginManager::instance()->create<core::EventStreamer>(m_streamerName);
+      m_eventStreamer = core::PluginManager::instance()->create<core::EventStreamer>(m_streamerName);
       
       if(!m_eventStreamer)
       {
@@ -133,7 +133,7 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
-    void EventSource::sendEvent(const EventPtr &event)
+    void EventSource::sendEvent(const core::EventPtr &event)
     {
       core::StringVector collectors;
 
@@ -145,7 +145,7 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
-    void EventSource::sendEvent(const std::string &collector, const EventPtr &event)
+    void EventSource::sendEvent(const std::string &collector, const core::EventPtr &event)
     {
       if(m_collectorInfos.end() == m_collectorInfos.find(collector))
       {
@@ -158,7 +158,7 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
-    void EventSource::sendEvent(const core::StringVector &collectors, const EventPtr &event)
+    void EventSource::sendEvent(const core::StringVector &collectors, const core::EventPtr &event)
     {
       if(!m_started)
         throw core::StatusCodeException(core::STATUS_CODE_NOT_INITIALIZED);
@@ -221,7 +221,7 @@ namespace dqm4hep {
       info["source"] = m_sourceName;
       
       // host info
-      StringMap hostInfo; Json::Value hostInfoValue;
+      core::StringMap hostInfo; Json::Value hostInfoValue;
       core::fillHostInfo(hostInfo);
       
       for(auto hi : hostInfo)

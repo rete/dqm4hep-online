@@ -41,7 +41,7 @@
 
 namespace dqm4hep {
 
-  namespace core {
+  namespace online {
     
     class EventSource;
     typedef std::shared_ptr<EventSource> EventSourcePtr;
@@ -60,7 +60,7 @@ namespace dqm4hep {
      *          source->addCollector("PrivateCollector");
      *          source->start();
      *          // ...
-     *          Event *event = getLastEvent(); // hypothetical getter function  
+     *          core::EventPtr event = getLastEvent(); // hypothetical getter function  
      *          source->sendEvent(event); // send to all collectors
      *          @endcode
      */
@@ -118,7 +118,7 @@ namespace dqm4hep {
        *  
        *  @param  event the event pointer to serialize and send
        */
-      void sendEvent(const EventPtr &event);
+      void sendEvent(const core::EventPtr &event);
       
       /**
        *  @brief  Send a single event to a single collector. The collector must have been registered
@@ -128,7 +128,7 @@ namespace dqm4hep {
        *  @param  collector the event collector to send 
        *  @param  event the event pointer to serialize and send
        */
-      void sendEvent(const std::string &collector, const EventPtr &event);
+      void sendEvent(const std::string &collector, const core::EventPtr &event);
       
     private:
       /**
@@ -160,7 +160,7 @@ namespace dqm4hep {
        *  @param  collectors the list of collectors
        *  @param  event     [description]
        */
-      void sendEvent(const core::StringVector &collectors, const EventPtr &event);
+      void sendEvent(const core::StringVector &collectors, const core::EventPtr &event);
 
     private:
       /** 

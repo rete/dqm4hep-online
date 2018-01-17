@@ -267,7 +267,7 @@ namespace dqm4hep {
         if(!registered)
         {
           const std::string message(response.get("message", "The event collector is maybe not available or is down !").asString());
-          dqm_warning( "EventSource::registerMe(): Couldn't register to source to collector '{0}': {1}", collector, message );
+          dqm_warning( "EventSource::registerMe(): Couldn't register source to collector '{0}': {1}", collector, message );
           returnValue = false;
         }
         else

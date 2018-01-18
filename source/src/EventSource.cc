@@ -29,6 +29,7 @@
 #include <dqm4hep/EventSource.h>
 #include <dqm4hep/Logging.h>
 #include <dqm4hep/PluginManager.h>
+#include <dqm4hep/Server.h>
 
 namespace dqm4hep {
 
@@ -126,6 +127,7 @@ namespace dqm4hep {
       {
         bool registered = this->registerMe(colIter.first, sourceInfo);
         colIter.second.m_registered = registered;
+        m_client.notifyServerOnExit("/dqm4hep/app/evtcol/" + colIter.first);
       }
       
       m_started = true;
@@ -190,6 +192,15 @@ namespace dqm4hep {
         {
           dqm_error( "EventSource::sendEvent(): Collector '{0}' not found... Something is wrong !!!", collector );
           throw core::StatusCodeException(core::STATUS_CODE_NOT_FOUND);
+        }
+        
+        // Is the event collector server actually running ?
+        if(!net::Server::isServerRunning("/dqm4hep/app/evtcol/" + iter->first))
+        {
+          // in case the server was stopped, we will need to send 
+          // back the source registration on wake up
+          iter->second.m_registered = false;
+          continue;
         }
         
         // if not yet registered to the collector, do it

@@ -114,11 +114,13 @@ namespace dqm4hep {
       void sendCurrentRun(const dqm4hep::net::Buffer &request, dqm4hep::net::Buffer &response);
 
     private:
+      typedef std::shared_ptr<RunControlInterface> RunControlInterfacePtr;
+      typedef std::shared_ptr<dqm4hep::net::Server> ServerPtr;
       RunControl                    m_runControl;              ///< The main run control
-      dqm4hep::net::Server         *m_pServer = nullptr;       ///< The server to run
+      ServerPtr                     m_server = nullptr;       ///< The server to run
       dqm4hep::net::Service        *m_pSorService = nullptr;   ///< The "start of run" service 
       dqm4hep::net::Service        *m_pEorService = nullptr;   ///< The "end of run" service
-      RunControlInterface          *m_pInterface = nullptr;    ///< The external user plugin interface
+      RunControlInterfacePtr        m_interface = nullptr;    ///< The external user plugin interface
       dqm4hep::core::StringMap      m_userParameters = {};     ///< The user parameters
       std::atomic<bool>             m_stopFlag = {false};      ///< The stop flag to run the server
       std::string                   m_interfaceName = "";      ///< The external user interface plugin name 

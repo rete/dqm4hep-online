@@ -48,11 +48,6 @@ namespace dqm4hep {
 
     RunControlServer::~RunControlServer()
     {
-      if( m_pServer )
-        delete m_pServer;
-      
-      if( m_pInterface )
-        delete m_pInterface;
     }
 
     //-------------------------------------------------------------------------------------------------
@@ -97,52 +92,47 @@ namespace dqm4hep {
       m_stopFlag = false;
             
       // create user external interface (plugin)
-      m_pInterface = PluginManager::instance()->create<RunControlInterface>(m_interfaceName);
+      m_interface = PluginManager::instance()->create<RunControlInterface>(m_interfaceName);
       
-      if( ! m_pInterface )
+      if( ! m_interface )
       {
-        delete m_pServer;
         dqm_error( "Couldn't find run control interface '{0}' in plugin manager", m_interfaceName );
         throw StatusCodeException(STATUS_CODE_NOT_FOUND);
       }
-      
-      m_pInterface->setServer(this);      
-      m_pInterface->readSettings(m_userParameters);
-      
+  
       // create network interface
-      m_pServer = new dqm4hep::net::Server(m_runControl.name());
+      m_server = std::make_shared<dqm4hep::net::Server>(m_runControl.name());
 
-      m_pSorService = m_pServer->createService(OnlineRoutes::RunControl::sor(m_runControl.name()));
+      m_pSorService = m_server->createService(OnlineRoutes::RunControl::sor(m_runControl.name()));
       m_runControl.onStartOfRun().connect(this, &RunControlServer::sor);
 
-      m_pEorService = m_pServer->createService(OnlineRoutes::RunControl::eor(m_runControl.name()));
+      m_pEorService = m_server->createService(OnlineRoutes::RunControl::eor(m_runControl.name()));
       m_runControl.onEndOfRun().connect(this, &RunControlServer::eor);
 
-      m_pServer->createRequestHandler(OnlineRoutes::RunControl::status(m_runControl.name()), this, &RunControlServer::sendCurrentRun);
+      m_server->createRequestHandler(OnlineRoutes::RunControl::status(m_runControl.name()), this, &RunControlServer::sendCurrentRun);
+      
+      m_interface->setServer(this);      
+      m_interface->readSettings(m_userParameters);
       
       // start the server
-      m_pServer->start();
+      m_server->start();
       
       // run the user plugin
-      if(m_pInterface->runBlocking())
+      if(m_interface->runBlocking())
       {
         // block here until stop called from outside
-        m_pInterface->run();
+        m_interface->run();
       }
       else
       {
         // call run and sleep
-        m_pInterface->run();
+        m_interface->run();
         
         while( ! m_stopFlag )
           dqm4hep::core::sleep(dqm4hep::core::TimeDuration(1));
       }
       
-      // exit the server : stop and release memory
-      m_pServer->stop();
-      
-      delete m_pServer; m_pServer = nullptr;
-      delete m_pInterface; m_pInterface = nullptr;      
+      m_server->stop();
       m_pSorService = nullptr;
       m_pEorService = nullptr;
     }
@@ -151,7 +141,9 @@ namespace dqm4hep {
 
     void RunControlServer::stop()
     {
-      m_pInterface->stop();
+      if(m_interface) 
+        m_interface->stop();
+        
       m_stopFlag = true;
     }
 

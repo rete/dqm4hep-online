@@ -127,7 +127,6 @@ namespace dqm4hep {
       {
         bool registered = this->registerMe(colIter.first, sourceInfo);
         colIter.second.m_registered = registered;
-        m_client.notifyServerOnExit("/dqm4hep/app/evtcol/" + colIter.first);
       }
       
       m_started = true;
@@ -169,13 +168,8 @@ namespace dqm4hep {
         throw core::StatusCodeException(core::STATUS_CODE_INVALID_PTR);
       
       (void)m_bufferDevice->reset();
-      auto status = m_eventStreamer->write(event, m_bufferDevice.get());
       
-      if(!XDR_TESTBIT(status, xdrstream::XDR_SUCCESS))
-      {
-        dqm_error( "EventSource::sendEvent(): event streamer failed: {0}", status );
-        throw core::StatusCodeException(core::STATUS_CODE_FAILURE);
-      }
+      THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, m_eventStreamer->write(event, m_bufferDevice.get()));
       
       Json::Value sourceInfo;
       net::Buffer collectBuffer;
@@ -222,6 +216,16 @@ namespace dqm4hep {
         std::string collectCommand = "/dqm4hep/app/evtcol/" + collector + "/collect";
         m_client.sendCommand(collectCommand, collectBuffer);
       }  
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    core::EventPtr EventSource::createEvent() const
+    {
+      if(!m_started)
+        throw core::StatusCodeException(core::STATUS_CODE_NOT_INITIALIZED);
+      
+      return m_eventStreamer->createEvent();
     }
 
     //-------------------------------------------------------------------------------------------------
@@ -283,9 +287,17 @@ namespace dqm4hep {
         }
         else
         {
+          dqm_info( "Event source registered to event collector '{0}' !", collector );
           returnValue = true;
         }
       });
+      
+      if(returnValue)
+      {
+        dqm_info( "Will notify server on exit" );
+        m_client.notifyServerOnExit("/dqm4hep/app/evtcol/" + collector);        
+      }
+
       
       return returnValue;
     }

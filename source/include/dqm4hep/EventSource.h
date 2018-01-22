@@ -72,7 +72,7 @@ namespace dqm4hep {
        *  
        *  @param  sourceName the source name
        */
-      EventSourcePtr make_shared(const std::string &sourceName);
+      static EventSourcePtr make_shared(const std::string &sourceName);
 
       /**
        *  @brief  Destructor
@@ -129,6 +129,11 @@ namespace dqm4hep {
        *  @param  event the event pointer to serialize and send
        */
       void sendEvent(const std::string &collector, const core::EventPtr &event);
+      
+      /**
+       *  @brief
+       */
+      core::EventPtr createEvent() const;
       
     private:
       /**

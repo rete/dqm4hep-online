@@ -54,6 +54,7 @@ MACRO(BUILD_EXECUTABLE _dir _name _install_loc)
 ENDMACRO()
 
 BUILD_EXECUTABLE( main dqm4hep-start-rc-server bin )
+BUILD_EXECUTABLE( main dqm4hep-start-random-event-source bin )
 
 # # -------------------------------------------------
 # # build start external application executable

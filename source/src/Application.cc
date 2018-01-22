@@ -105,6 +105,7 @@ namespace dqm4hep {
       Json::Value stat;
       stat["description"] = description;
       stat["value"] = 0.;
+      stat["time"] = (int32_t)std::chrono::system_clock::to_time_t(core::now());
       
       // add entry
       m_statistics["stats"][name] = stat;
@@ -176,6 +177,7 @@ namespace dqm4hep {
       m_server = std::make_shared<net::Server>(serverName);
       m_pAppStateService = m_server->createService(serverName + "/state");
       m_pAppStatsService = m_server->createService(serverName + "/stats");
+      m_server->onClientExit().connect(this, &Application::sendClientExitEvent);
       
       m_statistics["appType"] = this->type();
       m_statistics["appName"] = this->name();
@@ -201,6 +203,7 @@ namespace dqm4hep {
       m_running = true;
       
       m_server->start();
+      sleep(1);
       this->setState("Running");
       
       try
@@ -217,6 +220,7 @@ namespace dqm4hep {
       
       try
       {
+        m_eventLoop.connectOnEvent(this, &Application::onEvent);
         returnCode = m_eventLoop.exec();
         this->onStop();
       }
@@ -373,6 +377,21 @@ namespace dqm4hep {
       m_commandHandlerPtrMap.insert(NetworkHandlerPtrMap::value_type(commandName, handler));
       
       m_server->createCommandHandler(commandName, handler.get(), &Application::NetworkHandler::sendCommandEvent);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    int Application::serverClientId() const
+    {
+      return m_server->clientId();
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void Application::sendClientExitEvent(int clientId)
+    {
+      ClientExitEvent *pEvent = new ClientExitEvent(clientId);
+      m_eventLoop.sendEvent(pEvent);
     }
     
     //-------------------------------------------------------------------------------------------------

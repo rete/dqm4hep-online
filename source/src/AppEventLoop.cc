@@ -87,12 +87,16 @@ namespace dqm4hep {
           break;
         
         // safely get the app event pointer 
-        AppEventPtr event(0);
+        AppEventPtr event;
         
         {
           std::lock_guard<std::recursive_mutex> lock(m_queueMutex);
-          event = m_eventQueue.back();
-          m_eventQueue.pop_back();
+          
+          if(!m_eventQueue.empty())
+          {
+            event = m_eventQueue.back();
+            m_eventQueue.pop_back();            
+          }
         }
         
         // if no event, save cpu ressources ...
@@ -146,11 +150,11 @@ namespace dqm4hep {
     
     void AppEventLoop::processEvent(AppEvent *pAppEvent)
     {
-      if(!this->running())
-      {
-        dqm_error( "AppEventLoop::processEvent(): can not process event, the event loop has not been started yet !" );
-        throw core::StatusCodeException(core::STATUS_CODE_NOT_INITIALIZED);
-      }
+      // if(!this->running())
+      // {
+      //   dqm_error( "AppEventLoop::processEvent(): can not process event, the event loop has not been started yet !" );
+      //   throw core::StatusCodeException(core::STATUS_CODE_NOT_INITIALIZED);
+      // }
       
       try
       {

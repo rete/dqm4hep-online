@@ -29,66 +29,72 @@
 #define DQM4HEP_EVENTCOLLECTOR_H
 
 // -- dqm4hep headers
-#include "dqm4hep/DQM4HEP.h"
+#include "dqm4hep/Internal.h"
+#include "dqm4hep/StatusCodes.h"
+#include "dqm4hep/Application.h"
+
+// -- tclap headers
+#include "tclap/CmdLine.h"
+#include "tclap/Arg.h"
 
 namespace dqm4hep {
 
-  namespace core {
-
-    class EventCollectorImp;
-
-    /** EventCollector class
+  namespace online {
+    
+    /** 
+     *  @brief  EventCollector class
      */
-    class EventCollector
+    class EventCollector : public Application
     {
     public:
-      /** Constructor
+      /** 
+       *  @brief  Constructor
        */
       EventCollector();
 
-      /** Constructor with collector implementation
+      /** 
+       *  @brief  Destructor
        */
-      EventCollector(EventCollectorImp *pCollectorImp);
-
-      /** Destructor
-       */
-      ~EventCollector();
-
-      /** Set the collctor name
-       */
-      StatusCode setCollectorName(const std::string &collectorName);
-
-      /** Get the collector name
-       */
-      const std::string &getCollectorName() const;
-
-      /** Whether the collector server is running
-       */
-      bool isRunning() const;
-
-      /** Start the collector server
-       */
-      StatusCode startCollector();
-
-      /** Stop the collector server
-       */
-      StatusCode stopCollector();
-
-      /** Set the event collector implementation
-       */
-      void setEventCollectorImp(EventCollectorImp *pCollectorImp);
-
-      /** Set the event streamer to serialize/deserialize the in/out-coming events
-       */
-      void setEventStreamer(EventStreamer *pEventStreamer);
-
-      /** Get the event streamer
-       */
-      EventStreamer *getEventStreamer() const;
+      ~EventCollector() {}
+      
+      void parseCmdLine(int argc, char **argv);
+      void onInit();
+      void onEvent(AppEvent *pAppEvent);
+      void onStart();
+      void onStop();
 
     private:
-
-      EventCollectorImp *m_pCollectorImp;
+      void handleRegistration(RequestEvent *event);
+      void handleClientExit(ClientExitEvent *event);
+      void handleCollectEvent(CommandEvent *event);
+      void handleClientUnregistration(CommandEvent *event);
+      
+      struct SourceInfo
+      {
+        SourceInfo() = default;
+        
+        SourceInfo(SourceInfo&& info) :
+          m_clientId(m_clientId),
+          m_name(std::move(m_name)),
+          m_streamerName(std::move(m_streamerName)),
+          m_collectors(std::move(m_collectors)),
+          m_hostInfo(std::move(m_hostInfo)),
+          m_buffer(std::move(m_buffer))
+        {
+        }
+        
+        int                  m_clientId = {0};
+        std::string          m_name = {""};
+        std::string          m_streamerName = {""};
+        core::StringVector   m_collectors = {};
+        core::StringMap      m_hostInfo = {};
+        net::Buffer          m_buffer = {};
+      };
+      
+      typedef std::map<std::string, SourceInfo> SourceInfoMap;
+      
+      std::shared_ptr<TCLAP::CmdLine>     m_cmdLine = nullptr;
+      SourceInfoMap                       m_sourceInfoMap = {};
     };
 
   }

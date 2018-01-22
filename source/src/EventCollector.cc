@@ -26,91 +26,236 @@
 
 // -- dqm4hep headers
 #include "dqm4hep/EventCollector.h"
-#include "dqm4hep/DimEventCollector.h"
+#include "DQMOnlineConfig.h"
+#include "dqm4hep/Logging.h"
 
 namespace dqm4hep {
 
-  namespace core {
-
-    EventCollector::EventCollector()
-    {
-      // default implementation is the DIM one
-      m_pCollectorImp = new DimEventCollector();
+  namespace online {
+    
+    EventCollector::EventCollector() : 
+      Application()
+    {      
     }
 
     //-------------------------------------------------------------------------------------------------
 
-    EventCollector::EventCollector(EventCollectorImp *pCollectorImp) :
-		        m_pCollectorImp(pCollectorImp)
+    void EventCollector::parseCmdLine(int argc, char **argv)
     {
-      /* nop */
+      std::string cmdLineFooter = "Please report bug to <dqm4hep@gmail.com>";
+      m_cmdLine = std::make_shared<TCLAP::CmdLine>(cmdLineFooter, ' ', DQMOnline_VERSION_STR);
+      
+      TCLAP::ValueArg<std::string> collectorNameArg(
+          "c"
+          , "collector-name"
+          , "The event collector name"
+          , true
+          , ""
+          , "string");
+      m_cmdLine->add(collectorNameArg);
+      
+      core::StringVector verbosities(core::Logger::logLevels());
+      TCLAP::ValuesConstraint<std::string> verbosityConstraint(verbosities);
+      TCLAP::ValueArg<std::string> verbosityArg(
+          "v"
+          , "verbosity"
+          , "The logging verbosity"
+          , false
+          , "info"
+          , &verbosityConstraint);
+      m_cmdLine->add(verbosityArg);
+      
+      // parse command line
+      m_cmdLine->parse(argc, argv);
+
+      // set log level
+      std::string verbosity(verbosityArg.getValue());
+      core::Logger::setLogLevel(core::Logger::logLevelFromString(verbosity));;
+
+      // set 
+      std::string collectorName(collectorNameArg.getValue());
+      this->setType("evtcol");
+      this->setName(collectorName);
     }
-
+    
     //-------------------------------------------------------------------------------------------------
-
-    EventCollector::~EventCollector()
+    
+    void EventCollector::onInit()
     {
-      delete m_pCollectorImp;
+      this->createRequestHandler("/dqm4hep/app/evtcol/" + this->name() + "/register");
+      this->createDirectCommand("/dqm4hep/app/evtcol/" + this->name() + "/unregister");
+      this->createDirectCommand("/dqm4hep/app/evtcol/" + this->name() + "/collect");
+      
+      this->createStatsEntry("NSources", "The current number of registered sources");
+      this->createStatsEntry("NEvents_60sec", "The number of collected events within the last minute");
+      this->createStatsEntry("NEvents_10sec", "The number of collected events within the last 10 secondes");
+      this->createStatsEntry("NBytes_60sec", "The total number of collected bytes within the last minute");
+      this->createStatsEntry("NBytes_10sec", "The total number of collected bytes within the last 10 secondes");
+      this->createStatsEntry("NMeanBytes_60sec", "The mean number of collected bytes within the last minute");
+      this->createStatsEntry("NMeanBytes_10sec", "The mean number of collected bytes within the last 10 secondes");
     }
-
+    
     //-------------------------------------------------------------------------------------------------
-
-    StatusCode EventCollector::setCollectorName(const std::string &collectorName)
+    
+    void EventCollector::onEvent(AppEvent *pAppEvent)
     {
-      return m_pCollectorImp->setCollectorName(collectorName);
+      if(pAppEvent->type() == AppEvent::REQUEST_HANDLING)
+      {
+        RequestEvent *request = (RequestEvent *) pAppEvent;
+        
+        if(request->requestName() == "/dqm4hep/app/evtcol/" + this->name() + "/register")
+          this->handleRegistration(request);
+      }
+      else if(pAppEvent->type() == AppEvent::CLIENT_EXIT)
+      {
+        ClientExitEvent *pClientExitEvent = (ClientExitEvent *) pAppEvent;
+        this->handleClientExit(pClientExitEvent);
+      }
+      if(pAppEvent->type() == AppEvent::COMMAND_HANDLING)
+      {
+        CommandEvent *command = (CommandEvent *) pAppEvent;
+        
+        if(command->commandName() == "/dqm4hep/app/evtcol/" + this->name() + "/collect")
+          this->handleCollectEvent(command);
+        else if(command->commandName() == "/dqm4hep/app/evtcol/" + this->name() + "/unregister")
+          this->handleClientUnregistration(command);
+      }
     }
-
+    
     //-------------------------------------------------------------------------------------------------
-
-    const std::string &EventCollector::getCollectorName() const
+    
+    void EventCollector::onStart()
     {
-      return m_pCollectorImp->getCollectorName();
+      
     }
-
+    
     //-------------------------------------------------------------------------------------------------
-
-    bool EventCollector::isRunning() const
+    
+    void EventCollector::onStop()
     {
-      return m_pCollectorImp->isRunning();
+      
     }
-
+    
     //-------------------------------------------------------------------------------------------------
-
-    StatusCode EventCollector::startCollector()
+    
+    void EventCollector::handleRegistration(RequestEvent *request)
     {
-      return m_pCollectorImp->startCollector();
+      Json::Value registrationDetails;
+      Json::CharReaderBuilder readerBuilder;
+      std::unique_ptr<Json::CharReader> reader(readerBuilder.newCharReader());
+      reader->parse(request->request().begin(), request->request().end(), &registrationDetails, nullptr);
+                  
+      const std::string clientSourceName = registrationDetails["source"].asString();
+
+      Json::Value clientResponseValue;
+      const int clientId = this->serverClientId();
+      auto findIter = m_sourceInfoMap.find(clientSourceName);
+      
+      // source already registered
+      if(m_sourceInfoMap.end() != findIter)
+      {
+        
+        if(clientId == findIter->second.m_clientId)
+        {
+          clientResponseValue["message"] = "Event source already registered !";
+          clientResponseValue["registered"] = true;
+        }
+        else
+        {
+          clientResponseValue["message"] = "Event source already registered with a different client ID !";
+          clientResponseValue["registered"] = false;
+        }
+      }
+      // source not registered yet
+      else
+      {
+        SourceInfo sourceInfo;
+        sourceInfo.m_clientId = clientId;
+        sourceInfo.m_name = registrationDetails["source"].asString();
+        sourceInfo.m_streamerName = registrationDetails["streamer"].asString();
+        
+        Json::Value collectors = registrationDetails["collectors"];
+        Json::Value hostInfo = registrationDetails["host"];
+        
+        for(auto collector : collectors)
+          sourceInfo.m_collectors.push_back(collector.asString());
+          
+        for(auto hostInfoKey : hostInfo.getMemberNames())
+          sourceInfo.m_hostInfo[hostInfoKey] = hostInfo[hostInfoKey].asString();
+        
+        auto model = sourceInfo.m_buffer.createModel<std::string>();
+        sourceInfo.m_buffer.setModel(model);
+        
+        findIter = m_sourceInfoMap.insert(SourceInfoMap::value_type(sourceInfo.m_name, std::move(sourceInfo))).first;
+        dqm_info( "New event source '{0}' registered with client id {1}", sourceInfo.m_name, sourceInfo.m_clientId );
+        
+        clientResponseValue["registered"] = true;
+      }
+      
+      Json::StreamWriterBuilder builder;
+      builder["indentation"] = "  ";
+      std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+      std::ostringstream clientResponseStr;
+      writer->write(clientResponseValue, &clientResponseStr);
+      
+      auto model = request->response().createModel<std::string>();
+      request->response().setModel(model);
+      model->copy(clientResponseStr.str());
     }
-
+    
     //-------------------------------------------------------------------------------------------------
-
-    StatusCode EventCollector::stopCollector()
+    
+    void EventCollector::handleClientExit(ClientExitEvent *event)
     {
-      return m_pCollectorImp->stopCollector();
+      const int clientId(event->clientId());
+      
+      auto findIter = std::find_if(m_sourceInfoMap.begin(), m_sourceInfoMap.end(), [&clientId](const SourceInfoMap::value_type &iter){
+        return (iter.second.m_clientId == clientId);
+      });
+      
+      if(findIter != m_sourceInfoMap.end())
+      {
+        dqm_info( "Removing event source '{0}' from source list !", findIter->second.m_name );
+        m_sourceInfoMap.erase(findIter);
+      }
     }
-
+    
     //-------------------------------------------------------------------------------------------------
-
-    void EventCollector::setEventCollectorImp(EventCollectorImp *pCollectorImp)
+    
+    void EventCollector::handleCollectEvent(CommandEvent *command)
     {
-      if(NULL == pCollectorImp)
-        return;
-
-      delete m_pCollectorImp;
-      m_pCollectorImp = pCollectorImp;
+      const int clientId(this->serverClientId());
+      
+      auto findIter = std::find_if(m_sourceInfoMap.begin(), m_sourceInfoMap.end(), [&clientId](const SourceInfoMap::value_type &iter){
+        return (iter.second.m_clientId == clientId);
+      });
+      
+      if(findIter != m_sourceInfoMap.end())
+      {
+        auto &bufferCollect = command->buffer();            
+        std::string copiedBuffer(bufferCollect.begin(), bufferCollect.size());
+        
+        auto newModel = findIter->second.m_buffer.createModel<std::string>();
+        findIter->second.m_buffer.setModel(newModel);
+        newModel->move(std::move(copiedBuffer));
+      }
     }
-
+    
     //-------------------------------------------------------------------------------------------------
-
-    void EventCollector::setEventStreamer(EventStreamer *pEventStreamer)
+    
+    void EventCollector::handleClientUnregistration(CommandEvent *event)
     {
-      m_pCollectorImp->setEventStreamer(pEventStreamer);
-    }
-
-    //-------------------------------------------------------------------------------------------------
-
-    EventStreamer *EventCollector::getEventStreamer() const
-    {
-      return m_pCollectorImp->getEventStreamer();
+      const int clientId(this->serverClientId());
+      
+      auto findIter = std::find_if(m_sourceInfoMap.begin(), m_sourceInfoMap.end(), [&clientId](const SourceInfoMap::value_type &iter){
+        return (iter.second.m_clientId == clientId);
+      });
+      
+      if(findIter != m_sourceInfoMap.end())
+      {
+        dqm_info( "Removing event source '{0}' from source list !", findIter->second.m_name );
+        m_sourceInfoMap.erase(findIter);
+      }
     }
 
   }

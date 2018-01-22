@@ -22,6 +22,7 @@ SET( SRC_FILES ${SRC_FILES} src/RunControlInterface.cc )
 SET( SRC_FILES ${SRC_FILES} src/AppEvent.cc )
 SET( SRC_FILES ${SRC_FILES} src/AppEventLoop.cc )
 SET( SRC_FILES ${SRC_FILES} src/Application.cc )
+SET( SRC_FILES ${SRC_FILES} src/EventCollector.cc )
 
 IF( BUILD_HTTP_RC )
   FIND_PACKAGE( Mongoose REQUIRED )
@@ -62,6 +63,7 @@ BUILD_EXECUTABLE( main dqm4hep-start-rc-server bin )
 BUILD_EXECUTABLE( main dqm4hep-start-random-event-source bin )
 BUILD_EXECUTABLE( main dqm4hep-start-online-mgr bin )
 BUILD_EXECUTABLE( main dqm4hep-online-logger bin )
+BUILD_EXECUTABLE( main dqm4hep-start-event-collector bin )
 
 # # -------------------------------------------------
 # # build start external application executable

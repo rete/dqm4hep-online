@@ -43,7 +43,12 @@ namespace dqm4hep {
   namespace online {
 
     class AppEventLoop {
-    public:      
+    public:     
+      /**
+       *  @brief  Default constructor
+       */
+      AppEventLoop() {}
+       
       /**
        *  @brief  Post an event in the event queue. 
        *          The event queue is sorted by event priority.

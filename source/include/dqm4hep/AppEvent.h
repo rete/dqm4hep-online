@@ -45,6 +45,7 @@ namespace dqm4hep {
         SERVICE_UPDATE,
         REQUEST_HANDLING,
         COMMAND_HANDLING,
+        CLIENT_EXIT,
         START_OF_RUN,
         START_OF_CYCLE,
         PROCESS_EVENT,

@@ -47,6 +47,11 @@ namespace dqm4hep {
     class Application
     {
     public:  
+      /**
+       *  @brief  Default constructor
+       */
+      Application() {};
+      
       /** 
        *  @brief  Destructor
        */
@@ -283,6 +288,10 @@ namespace dqm4hep {
        */
       void createDirectCommand(const std::string &commandName);
       
+      int serverClientId() const;
+      
+      void sendClientExitEvent(int clientId);
+      
     private:
       /**
        *  @brief  NetworkHandler class
@@ -363,7 +372,7 @@ namespace dqm4hep {
       bool                         m_initialized = {false};           ///< Whether the application is initialized
       bool                         m_statsEnabled = {true};           ///< Whether the application statistics are available  
 
-      AppEventLoop                 m_eventLoop;                       ///< The application event loop
+      AppEventLoop                 m_eventLoop = {};                  ///< The application event loop
       std::shared_ptr<net::Server> m_server = {nullptr};              ///< The main server interface of the application
       net::Service                *m_pAppStateService = {nullptr};    ///< The service for application state, updated when the state changes
       net::Service                *m_pAppStatsService = {nullptr};    ///< The service for application statistics, updated when a statistic changes

@@ -175,7 +175,7 @@ namespace dqm4hep {
       net::Buffer collectBuffer;
       auto model = collectBuffer.createModel();
       collectBuffer.setModel(model);
-      model->handle(m_bufferDevice->getBuffer(), m_bufferDevice->getBufferSize());
+      model->handle(m_bufferDevice->getBuffer(), m_bufferDevice->getPosition());
       
       // send serialized event to all collectors 
       for(auto collector : collectors)

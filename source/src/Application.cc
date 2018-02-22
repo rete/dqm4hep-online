@@ -98,11 +98,11 @@ namespace dqm4hep {
         throw core::StatusCodeException(core::STATUS_CODE_NOT_ALLOWED);
       }
       
-      if(m_statistics["stats"].isMember(name))
+      if(!m_statistics["stats"][name].is_null())
         throw core::StatusCodeException(core::STATUS_CODE_ALREADY_PRESENT);
       
       // fill entry info
-      Json::Value stat;
+      core::json stat;
       stat["description"] = description;
       stat["value"] = 0.;
       stat["time"] = (int32_t)std::chrono::system_clock::to_time_t(core::now());
@@ -118,18 +118,12 @@ namespace dqm4hep {
       if(!this->statsEnabled())
         return;
         
-      if(!m_statistics["stats"].isMember(name))
+      if(m_statistics["stats"][name].is_null())
         throw core::StatusCodeException(core::STATUS_CODE_NOT_FOUND);
       
       m_statistics["stats"][name]["value"] = stats;
-      Json::Value statValue(m_statistics["stats"][name]);
-      
-      Json::StreamWriterBuilder builder;
-      std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
-      std::ostringstream jsonString;
-      writer->write(statValue, &jsonString);
-      
-      m_pAppStatsService->send(jsonString.str());
+      core::json statValue(m_statistics["stats"][name]);      
+      m_pAppStatsService->send(statValue.dump());
     }
 
     //-------------------------------------------------------------------------------------------------    
@@ -181,7 +175,7 @@ namespace dqm4hep {
       
       m_statistics["appType"] = this->type();
       m_statistics["appName"] = this->name();
-      m_statistics["stats"] = Json::Value(Json::objectValue);
+      m_statistics["stats"] = {};
       
       try
       {

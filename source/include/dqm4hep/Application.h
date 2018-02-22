@@ -382,7 +382,7 @@ namespace dqm4hep {
       NetworkHandlerPtrMap         m_requestHandlerPtrMap;            ///< The map handling request handlers from the server interface
       NetworkHandlerPtrMap         m_commandHandlerPtrMap;            ///< The map handling command handlers from the server interface
 
-      Json::Value                  m_statistics = {};                 ///< The json value handling the application statistics
+      core::json                   m_statistics = {};                 ///< The json value handling the application statistics
     };
     
     //-------------------------------------------------------------------------------------------------

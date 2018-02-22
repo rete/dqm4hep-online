@@ -140,16 +140,11 @@ namespace dqm4hep {
     
     void EventCollector::handleRegistration(RequestEvent *request)
     {
-      Json::Value registrationDetails;
-      Json::CharReaderBuilder readerBuilder;
-      std::unique_ptr<Json::CharReader> reader(readerBuilder.newCharReader());
-      reader->parse(request->request().begin(), request->request().end(), &registrationDetails, nullptr);
-                  
-      const std::string clientSourceName = registrationDetails["source"].asString();
-
-      Json::Value clientResponseValue;
-      const int clientId = this->serverClientId();
+      core::json registrationDetails = core::json::parse(request->request().begin(), request->request().end()); 
+      auto clientSourceName = registrationDetails.value<std::string>("source", "");
+      auto clientId = this->serverClientId();
       auto findIter = m_sourceInfoMap.find(clientSourceName);
+      core::json clientResponseValue;
       
       // source already registered
       if(m_sourceInfoMap.end() != findIter)
@@ -171,17 +166,17 @@ namespace dqm4hep {
       {
         SourceInfo sourceInfo;
         sourceInfo.m_clientId = clientId;
-        sourceInfo.m_name = registrationDetails["source"].asString();
-        sourceInfo.m_streamerName = registrationDetails["streamer"].asString();
+        sourceInfo.m_name = registrationDetails.value<std::string>("source", "");
+        sourceInfo.m_streamerName = registrationDetails.value<std::string>("streamer", "");
         
-        Json::Value collectors = registrationDetails["collectors"];
-        Json::Value hostInfo = registrationDetails["host"];
+        auto collectors = registrationDetails["collectors"];
+        auto hostInfo = registrationDetails["host"];
         
         for(auto collector : collectors)
-          sourceInfo.m_collectors.push_back(collector.asString());
+          sourceInfo.m_collectors.push_back(collector.get<std::string>());
           
-        for(auto hostInfoKey : hostInfo.getMemberNames())
-          sourceInfo.m_hostInfo[hostInfoKey] = hostInfo[hostInfoKey].asString();
+        for(auto hostInfoIter : hostInfo.items())
+          sourceInfo.m_hostInfo[hostInfoIter.key()] = hostInfo[hostInfoIter.key()].get<std::string>();
         
         auto model = sourceInfo.m_buffer.createModel<std::string>();
         sourceInfo.m_buffer.setModel(model);
@@ -192,15 +187,9 @@ namespace dqm4hep {
         clientResponseValue["registered"] = true;
       }
       
-      Json::StreamWriterBuilder builder;
-      builder["indentation"] = "  ";
-      std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
-      std::ostringstream clientResponseStr;
-      writer->write(clientResponseValue, &clientResponseStr);
-      
       auto model = request->response().createModel<std::string>();
       request->response().setModel(model);
-      model->copy(clientResponseStr.str());
+      model->copy(clientResponseValue.dump());
     }
     
     //-------------------------------------------------------------------------------------------------

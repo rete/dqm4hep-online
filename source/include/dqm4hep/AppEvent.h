@@ -46,12 +46,6 @@ namespace dqm4hep {
         REQUEST_HANDLING,
         COMMAND_HANDLING,
         CLIENT_EXIT,
-        START_OF_RUN,
-        START_OF_CYCLE,
-        PROCESS_EVENT,
-        PROCESS_CALLBCK,
-        END_OF_CYCLE,
-        END_OF_RUN,
         USER = 1024,
         MAX_USER = 65535
       };

@@ -36,6 +36,82 @@ namespace dqm4hep {
 
   namespace online {
     
+    AppEventLoop::Timer::Timer(const std::string &name, AppEventLoop &loop) :
+      DimTimer(),
+      m_name(name),
+      m_appEventLoop(loop)
+    {
+      /* nop */
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    const std::string &AppEventLoop::Timer::name() const {
+      return m_name;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void AppEventLoop::Timer::setTimeout(int nSeconds) {
+      m_timeout = nSeconds;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    int AppEventLoop::Timer::timeout() const {
+      return m_timeout;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void AppEventLoop::Timer::startTimer() {
+      DimTimer::start(m_timeout);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void AppEventLoop::Timer::stopTimer() {
+      DimTimer::stop();
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void AppEventLoop::Timer::setSingleShot(bool single) {
+      m_singleShot = single;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    bool AppEventLoop::Timer::singleShot() const {
+      return m_singleShot;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    core::Signal<void> &AppEventLoop::Timer::onTimeout() {
+      return m_timeoutSignal;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+
+    void AppEventLoop::Timer::timerHandler() {
+      // process the timeout in the event loop
+      m_appEventLoop.processFunction([this](){
+        this->m_timeoutSignal.process();
+      });
+      
+      // restart in not single shot
+      if(!singleShot()) {
+        startTimer();
+      }
+      else {
+        m_appEventLoop.removeTimer(this);
+      }
+    }
+
+    //-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
+    
     void AppEventLoop::postEvent(AppEvent *pAppEvent)
     {
       if(nullptr == pAppEvent)
@@ -81,6 +157,14 @@ namespace dqm4hep {
       m_running = true;
       m_quitFlag = false;
       
+      {
+        // start timers
+        std::lock_guard<std::recursive_mutex> lock(m_eventMutex);
+        for(auto timer : m_timers) {
+          timer.second->startTimer();
+        }
+      }
+      
       while(1)
       {
         if(m_quitFlag)
@@ -118,9 +202,31 @@ namespace dqm4hep {
           m_returnCode = 1;
           break;
         }
+        
+        {
+          std::lock_guard<std::recursive_mutex> lock(m_eventMutex);
+          for(auto timer : m_timerRemovals) {
+            // just in case ...
+            timer.second->stopTimer();
+            delete timer.second;
+          }
+          m_timerRemovals.clear();
+        }
       }
       
       m_running = false;
+      
+      std::lock_guard<std::recursive_mutex> lock(m_eventMutex);
+      for(auto timer : m_timerRemovals) {
+        timer.second->stopTimer();
+        delete timer.second;
+      }
+      for(auto timer : m_timers) {
+        timer.second->stopTimer();
+        delete timer.second;
+      }
+      m_timers.clear();
+      m_timerRemovals.clear();
       
       return m_returnCode.load();
     }
@@ -217,8 +323,25 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
-    int AppEventLoop::count(int eventType)
-    {
+    void AppEventLoop::removeTimer(Timer *timer) {
+      removeTimer(timer->name());
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void AppEventLoop::removeTimer(const std::string &name) {
+      std::lock_guard<std::recursive_mutex> lock(m_eventMutex);
+      auto findIter = m_timers.find(name);
+      if(m_timers.end() != findIter) {
+        findIter->second->stopTimer();
+        m_timerRemovals[findIter->first] = findIter->second;
+        m_timers.erase(findIter);
+      }
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    int AppEventLoop::count(int eventType) {
       std::lock_guard<std::recursive_mutex> lock(m_queueMutex);
       return std::count_if(m_eventQueue.begin(), m_eventQueue.end(), [&eventType](AppEventPtr ptr){
         return (ptr->type() == eventType);

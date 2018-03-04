@@ -49,42 +49,6 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     //-------------------------------------------------------------------------------------------------
-
-    class ProcessEventEvent : public AppEvent
-    {
-    public:
-      ProcessEventEvent(std::shared_ptr<core::Event> event);
-      std::shared_ptr<core::Event> event() const;
-    private:
-      std::shared_ptr<core::Event>       m_event;
-    };
-    
-    //-------------------------------------------------------------------------------------------------
-    //-------------------------------------------------------------------------------------------------
-    
-    class StartOfRunEvent : public AppEvent
-    {
-    public:
-      StartOfRunEvent(const core::Run &run);
-      const core::Run &run() const;
-    private:
-      core::Run           m_run;
-    };
-    
-    //-------------------------------------------------------------------------------------------------
-    //-------------------------------------------------------------------------------------------------
-    
-    class EndOfRunEvent : public AppEvent
-    {
-    public:
-      EndOfRunEvent(const core::Run &run);
-      const core::Run &run() const;
-    private:
-      core::Run           m_run;
-    };
-    
-    //-------------------------------------------------------------------------------------------------
-    //-------------------------------------------------------------------------------------------------
     
     class ServiceUpdateEvent : public AppEvent
     {
@@ -156,55 +120,6 @@ namespace dqm4hep {
     inline int QuitEvent::returnCode() const
     {
       return m_returnCode;
-    }
-    
-    //-------------------------------------------------------------------------------------------------
-    //-------------------------------------------------------------------------------------------------
-    
-    inline ProcessEventEvent::ProcessEventEvent(std::shared_ptr<core::Event> event) :
-      AppEvent(AppEvent::PROCESS_EVENT),
-      m_event(event)
-    {
-      setPriority(60);
-    }
-    
-    //-------------------------------------------------------------------------------------------------
-
-    inline std::shared_ptr<core::Event> ProcessEventEvent::event() const
-    {
-      return m_event;
-    }
-    
-    //-------------------------------------------------------------------------------------------------
-    //-------------------------------------------------------------------------------------------------
-    
-    inline StartOfRunEvent::StartOfRunEvent(const core::Run &run) :
-      AppEvent(AppEvent::START_OF_RUN)
-    {
-      setPriority(90);
-    }
-    
-    //-------------------------------------------------------------------------------------------------
-    
-    inline const core::Run &StartOfRunEvent::run() const
-    {
-      return m_run;
-    }
-    
-    //-------------------------------------------------------------------------------------------------
-    //-------------------------------------------------------------------------------------------------
-    
-    inline EndOfRunEvent::EndOfRunEvent(const core::Run &run) :
-      AppEvent(AppEvent::END_OF_RUN)
-    {
-      setPriority(90);
-    }
-    
-    //-------------------------------------------------------------------------------------------------
-    
-    inline const core::Run &EndOfRunEvent::run() const
-    {
-      return m_run;
     }
     
     //-------------------------------------------------------------------------------------------------

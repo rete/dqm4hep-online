@@ -90,7 +90,7 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
 
-    void Application::createStatsEntry(const std::string &name, const std::string &description)
+    void Application::createStatsEntry(const std::string &name, const std::string &unit, const std::string &description)
     {
       if(this->initialized())
       {
@@ -98,32 +98,36 @@ namespace dqm4hep {
         throw core::StatusCodeException(core::STATUS_CODE_NOT_ALLOWED);
       }
       
-      if(!m_statistics["stats"][name].is_null())
+      if(!m_statistics[name].is_null())
         throw core::StatusCodeException(core::STATUS_CODE_ALREADY_PRESENT);
       
-      // fill entry info
-      core::json stat;
-      stat["description"] = description;
-      stat["value"] = 0.;
-      stat["time"] = (int32_t)std::chrono::system_clock::to_time_t(core::now());
-      
-      // add entry
-      m_statistics["stats"][name] = stat;
+      // add stat entry
+      m_statistics[name] = {
+        {"description", description},
+        {"unit", unit}
+      };
     }
   
     //-------------------------------------------------------------------------------------------------
 
-    void Application::updateStats(const std::string &name, double stats)
+    void Application::sendStat(const std::string &name, double stats)
     {
       if(!this->statsEnabled())
         return;
         
-      if(m_statistics["stats"][name].is_null())
+      core::json object = m_statistics[name];
+      
+      if(object.is_null())
         throw core::StatusCodeException(core::STATUS_CODE_NOT_FOUND);
       
-      m_statistics["stats"][name]["value"] = stats;
-      core::json statValue(m_statistics["stats"][name]);      
-      m_pAppStatsService->send(statValue.dump());
+      // add metadata on the fly
+      object["name"] = name;
+      object["value"] = stats;
+      object["appType"] = this->type();
+      object["appName"] = this->name();
+      object["time"] = core::TimePoint::clock::to_time_t(core::now());
+      dqm_debug( "App stat {0} : {1}", name, object.dump() );
+      m_pAppStatsService->send(object.dump());
     }
 
     //-------------------------------------------------------------------------------------------------    
@@ -170,12 +174,11 @@ namespace dqm4hep {
       std::string serverName = baseName + this->type() + "/" + this->name();
       m_server = std::make_shared<net::Server>(serverName);
       m_pAppStateService = m_server->createService(serverName + "/state");
-      m_pAppStatsService = m_server->createService(serverName + "/stats");
+      if(m_statsEnabled) {
+        m_pAppStatsService = m_server->createService(serverName + "/stats");
+        createInternalStats();
+      }
       m_server->onClientExit().connect(this, &Application::sendClientExitEvent);
-      
-      m_statistics["appType"] = this->type();
-      m_statistics["appName"] = this->name();
-      m_statistics["stats"] = {};
       
       try
       {
@@ -214,6 +217,10 @@ namespace dqm4hep {
       
       try
       {
+        if(m_statsEnabled) {
+          // send statistics every 5 seconds
+          m_eventLoop.createTimer("AppStats", 5, false, this, &Application::sendAppStats);
+        }
         m_eventLoop.connectOnEvent(this, &Application::onEvent);
         returnCode = m_eventLoop.exec();
         this->onStop();
@@ -386,6 +393,34 @@ namespace dqm4hep {
     {
       ClientExitEvent *pEvent = new ClientExitEvent(clientId);
       m_eventLoop.sendEvent(pEvent);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void Application::sendAppStats() {
+      core::MemoryStats stats;
+      core::memStats(stats);
+      
+      sendStat("VmProc", stats.vmproc/(1024.));
+      sendStat("VmTotal", (stats.vmproc/(stats.vmtot*1.))*(100./1024));
+      sendStat("VmInUse", (stats.vmproc/(stats.vmused*1.))*(100./1024));
+      sendStat("RSSProc", stats.rssproc/(1024.));
+      sendStat("RSSTotal", (stats.rssproc/(stats.rsstot*1.))*(100./1024));
+      sendStat("RSSInUse", (stats.rssproc/(stats.rssused*1.))*(100./1024));
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void Application::createInternalStats() {
+      // Virtual memory
+      createStatsEntry("VmProc", "Mo", "The current virtual memory in use by the application (unit Mo)");
+      createStatsEntry("VmTotal", "%", "The current virtual memory percentage in use by the application compare to the total available on the host (unit %)");
+      createStatsEntry("VmInUse", "%", "The current virtual memory percentage in use by the application compare to the total used by the running processes (unit %)");
+      
+      // Resident set size
+      createStatsEntry("RSSProc", "Mo", "The current resident set size memory in use by the application (unit Mo)");
+      createStatsEntry("RSSTotal", "%", "The current resident set size memory percentage in use by the application compare to the total available on the host (unit %)");
+      createStatsEntry("RSSInUse", "%", "The current resident set size memory percentage in use by the application compare to the total used by the running processes (unit %)");
     }
     
     //-------------------------------------------------------------------------------------------------

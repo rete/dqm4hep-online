@@ -291,6 +291,12 @@ namespace dqm4hep {
       
       void sendClientExitEvent(int clientId);
       
+      template <typename Controller>
+      void createTimer(const std::string &name, unsigned int nSeconds, bool singleShot,
+                       Controller *controller, void (Controller::*function)());
+                       
+      void removeTimer(const std::string &name);
+      
     private:
       /**
        *  @brief  Send application statistics
@@ -407,6 +413,14 @@ namespace dqm4hep {
     template <typename Operation>
     inline void Application::sendRequest(const std::string &name, const net::Buffer &request, Operation operation) {
       m_client.sendRequest(name, request, operation);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    template <typename Controller>
+    inline void Application::createTimer(const std::string &name, unsigned int nSeconds, bool singleShot,
+                     Controller *controller, void (Controller::*function)()) {
+      m_eventLoop.createTimer(name, nSeconds, singleShot, controller, function);
     }
     
   }

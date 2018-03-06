@@ -335,6 +335,12 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
+    void Application::removeTimer(const std::string &name) {
+      m_eventLoop.removeTimer(name);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
     void Application::sendAppStats() {
       core::MemoryStats stats;
       core::memStats(stats);

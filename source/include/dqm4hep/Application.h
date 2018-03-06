@@ -44,8 +44,7 @@ namespace dqm4hep {
     /** 
      *  @brief  Application class
      */
-    class Application
-    {
+    class Application {
     public:  
       /**
        *  @brief  Default constructor
@@ -307,8 +306,7 @@ namespace dqm4hep {
       /**
        *  @brief  NetworkHandler class
        */
-      class NetworkHandler
-      {
+      class NetworkHandler {
       public:
         /**
          *  @brief  Constructor
@@ -400,16 +398,14 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
     
     template <typename T>
-    inline void Application::sendCommand(const std::string &name, const T &contents, bool blocking) const
-    {
+    inline void Application::sendCommand(const std::string &name, const T &contents, bool blocking) const {
       m_client.sendCommand(name, contents, blocking);
     }
     
     //-------------------------------------------------------------------------------------------------
     
     template <typename Operation>
-    inline void Application::sendRequest(const std::string &name, const net::Buffer &request, Operation operation)
-    {
+    inline void Application::sendRequest(const std::string &name, const net::Buffer &request, Operation operation) {
       m_client.sendRequest(name, request, operation);
     }
     

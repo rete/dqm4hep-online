@@ -137,12 +137,12 @@ namespace dqm4hep {
        *  @param  name the stat entry name
        *  @param  description the stat entry description
        */
-      void createStatsEntry(const std::string &name, const std::string &description);
+      void createStatsEntry(const std::string &name, const std::string &unit, const std::string &description);
       
       /**
-       *  @brief  Update the stats entry with a new value
+       *  @brief  Send the stat entry with a new value
        */
-      void updateStats(const std::string &name, double stats);
+      void sendStat(const std::string &name, double stats);
       
       /**
        *  @brief  Set whether to send statistics on update
@@ -291,6 +291,17 @@ namespace dqm4hep {
       int serverClientId() const;
       
       void sendClientExitEvent(int clientId);
+      
+    private:
+      /**
+       *  @brief  Send application statistics
+       */
+      void sendAppStats();
+      
+      /**
+       *  @brief  Create the internal stat entries (memory, CPU, etc ...)
+       */
+      void createInternalStats();
       
     private:
       /**

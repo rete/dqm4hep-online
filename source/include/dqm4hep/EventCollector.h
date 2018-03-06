@@ -68,6 +68,8 @@ namespace dqm4hep {
       void handleClientExit(ClientExitEvent *event);
       void handleCollectEvent(CommandEvent *event);
       void handleClientUnregistration(CommandEvent *event);
+      void sendStatsTimer10();
+      void sendStatsTimer60();
       
       struct SourceInfo
       {
@@ -95,6 +97,12 @@ namespace dqm4hep {
       
       std::shared_ptr<TCLAP::CmdLine>     m_cmdLine = nullptr;
       SourceInfoMap                       m_sourceInfoMap = {};
+      core::TimePoint                     m_lastStatCall10 = {};
+      core::TimePoint                     m_lastStatCall60 = {};
+      unsigned int                        m_nCollectedEvents10 = {0};
+      unsigned int                        m_nCollectedEvents60 = {0};
+      unsigned int                        m_nCollectedBytes10 = {0};
+      unsigned int                        m_nCollectedBytes60 = {0};
     };
 
   }

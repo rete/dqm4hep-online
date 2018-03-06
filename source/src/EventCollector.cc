@@ -86,13 +86,19 @@ namespace dqm4hep {
       this->createDirectCommand("/dqm4hep/app/evtcol/" + this->name() + "/unregister");
       this->createDirectCommand("/dqm4hep/app/evtcol/" + this->name() + "/collect");
       
-      this->createStatsEntry("NSources", "The current number of registered sources");
-      this->createStatsEntry("NEvents_60sec", "The number of collected events within the last minute");
-      this->createStatsEntry("NEvents_10sec", "The number of collected events within the last 10 secondes");
-      this->createStatsEntry("NBytes_60sec", "The total number of collected bytes within the last minute");
-      this->createStatsEntry("NBytes_10sec", "The total number of collected bytes within the last 10 secondes");
-      this->createStatsEntry("NMeanBytes_60sec", "The mean number of collected bytes within the last minute");
-      this->createStatsEntry("NMeanBytes_10sec", "The mean number of collected bytes within the last 10 secondes");
+      this->createStatsEntry("NSources", "", "The current number of registered sources");
+      this->createStatsEntry("NEvents_60sec", "1/min", "The number of collected events within the last minute");
+      this->createStatsEntry("NEvents_10sec", "1/10 sec", "The number of collected events within the last 10 secondes");
+      this->createStatsEntry("NBytes_60sec", "bytes", "The total number of collected bytes within the last minute");
+      this->createStatsEntry("NBytes_10sec", "bytes", "The total number of collected bytes within the last 10 secondes");
+      this->createStatsEntry("NMeanBytes_60sec", "bytes/min", "The mean number of collected bytes within the last minute");
+      this->createStatsEntry("NMeanBytes_10sec", "bytes/10 sec", "The mean number of collected bytes within the last 10 secondes");
+      
+      this->createTimer("CollectorStats10Secs", 10, true, this, &EventCollector::sendStatsTimer10);
+      this->createTimer("CollectorStats60Secs", 60, true, this, &EventCollector::sendStatsTimer60);
+      
+      m_lastStatCall10 = core::now();
+      m_lastStatCall60 = core::now();
     }
     
     //-------------------------------------------------------------------------------------------------
@@ -185,6 +191,7 @@ namespace dqm4hep {
         dqm_info( "New event source '{0}' registered with client id {1}", sourceInfo.m_name, sourceInfo.m_clientId );
         
         clientResponseValue["registered"] = true;
+        sendStat("NSources", m_sourceInfoMap.size());
       }
       
       auto model = request->response().createModel<std::string>();
@@ -206,6 +213,7 @@ namespace dqm4hep {
       {
         dqm_info( "Removing event source '{0}' from source list !", findIter->second.m_name );
         m_sourceInfoMap.erase(findIter);
+        sendStat("NSources", m_sourceInfoMap.size());
       }
     }
     
@@ -245,6 +253,34 @@ namespace dqm4hep {
         dqm_info( "Removing event source '{0}' from source list !", findIter->second.m_name );
         m_sourceInfoMap.erase(findIter);
       }
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void EventCollector::sendStatsTimer10() {
+      auto timeDifference = (core::now()-m_lastStatCall10).count();
+      // send stats
+      sendStat("NEvents_10sec", m_nCollectedEvents10);
+      sendStat("NBytes_10sec", m_nCollectedBytes10);
+      sendStat("NMeanBytes_10sec", m_nCollectedBytes10 / (timeDifference*1.));
+      // reset counters
+      m_nCollectedEvents10 = 0;
+      m_nCollectedBytes10 = 0;
+      m_lastStatCall10 = core::now();
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void EventCollector::sendStatsTimer60() {
+      auto timeDifference = (core::now()-m_lastStatCall60).count();
+      // send stats
+      sendStat("NEvents_60sec", m_nCollectedEvents60);
+      sendStat("NBytes_60sec", m_nCollectedBytes60);
+      sendStat("NMeanBytes_60sec", m_nCollectedBytes60 / (timeDifference*1.));
+      // reset counters
+      m_nCollectedEvents60 = 0;
+      m_nCollectedBytes60 = 0;
+      m_lastStatCall60 = core::now();
     }
 
   }

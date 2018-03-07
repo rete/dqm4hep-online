@@ -47,21 +47,21 @@ namespace dqm4hep {
     class EventCollector : public Application
     {
     public:
-      /** 
-       *  @brief  Constructor
+      /**
+       *  @brief  Default constructor
        */
       EventCollector();
-
-      /** 
-       *  @brief  Destructor
-       */
-      ~EventCollector() {}
       
-      void parseCmdLine(int argc, char **argv);
-      void onInit();
-      void onEvent(AppEvent *pAppEvent);
-      void onStart();
-      void onStop();
+      /**
+       *  @brief  Default destructor
+       */
+      ~EventCollector() = default;
+      
+      void parseCmdLine(int argc, char **argv) override;
+      void onInit() override;
+      void onEvent(AppEvent *pAppEvent) override;
+      void onStart() override;
+      void onStop() override;
 
     private:
       void handleRegistration(RequestEvent *event);
@@ -72,19 +72,12 @@ namespace dqm4hep {
       void sendStatsTimer60();
       void printSourceMap();
       
-      struct SourceInfo
-      {
+      /**
+       *  @brief  SourceInfo struct
+       */
+      struct SourceInfo {
         SourceInfo() = default;
-        
-        SourceInfo(SourceInfo&& info) :
-          m_clientId(std::move(m_clientId)),
-          m_name(std::move(m_name)),
-          m_streamerName(std::move(m_streamerName)),
-          m_collectors(std::move(m_collectors)),
-          m_hostInfo(std::move(m_hostInfo)),
-          m_buffer(std::move(m_buffer))
-        {
-        }
+        SourceInfo(SourceInfo&& info);
         
         int                  m_clientId = {0};
         std::string          m_name = {""};

@@ -146,11 +146,14 @@ namespace dqm4hep {
     
     void EventCollector::handleRegistration(RequestEvent *request)
     {
-      core::json registrationDetails = core::json::parse(request->request().begin(), request->request().end()); 
+      core::json registrationDetails({});
+      if(0 != request->request().size()) {
+        registrationDetails = core::json::parse(request->request().begin(), request->request().end());   
+      }
       auto clientSourceName = registrationDetails.value<std::string>("source", "");
-      auto clientId = this->serverClientId();
+      auto clientId = this->serverClientId();  
       auto findIter = m_sourceInfoMap.find(clientSourceName);
-      core::json clientResponseValue;
+      core::json clientResponseValue({});
       
       // source already registered
       if(m_sourceInfoMap.end() != findIter)
@@ -163,32 +166,35 @@ namespace dqm4hep {
         }
         else
         {
-          clientResponseValue["message"] = "Event source already registered with a different client ID !";
+          std::stringstream ss; ss << "Event source already registered with a different client ID (" << findIter->second.m_clientId << ") !";
+          clientResponseValue["message"] = ss.str();
           clientResponseValue["registered"] = false;
         }
       }
       // source not registered yet
       else
       {
+        std::string sourceName = registrationDetails.value<std::string>("source", "");
         SourceInfo sourceInfo;
-        sourceInfo.m_clientId = clientId;
-        sourceInfo.m_name = registrationDetails.value<std::string>("source", "");
-        sourceInfo.m_streamerName = registrationDetails.value<std::string>("streamer", "");
+        findIter = m_sourceInfoMap.insert(SourceInfoMap::value_type(sourceName, std::move(sourceInfo))).first;
+        
+        findIter->second.m_clientId = clientId;
+        findIter->second.m_name = registrationDetails.value<std::string>("source", "");
+        findIter->second.m_streamerName = registrationDetails.value<std::string>("streamer", "");
         
         auto collectors = registrationDetails["collectors"];
         auto hostInfo = registrationDetails["host"];
         
         for(auto collector : collectors)
-          sourceInfo.m_collectors.push_back(collector.get<std::string>());
+          findIter->second.m_collectors.push_back(collector.get<std::string>());
           
         for(auto hostInfoIter : hostInfo.items())
-          sourceInfo.m_hostInfo[hostInfoIter.key()] = hostInfo[hostInfoIter.key()].get<std::string>();
+          findIter->second.m_hostInfo[hostInfoIter.key()] = hostInfo[hostInfoIter.key()].get<std::string>();
         
-        auto model = sourceInfo.m_buffer.createModel<std::string>();
-        sourceInfo.m_buffer.setModel(model);
+        auto model = findIter->second.m_buffer.createModel<std::string>();
+        findIter->second.m_buffer.setModel(model);
         
-        findIter = m_sourceInfoMap.insert(SourceInfoMap::value_type(sourceInfo.m_name, std::move(sourceInfo))).first;
-        dqm_info( "New event source '{0}' registered with client id {1}", sourceInfo.m_name, sourceInfo.m_clientId );
+        dqm_info( "New event source '{0}' registered with client id {1}", findIter->second.m_name, findIter->second.m_clientId );
         
         clientResponseValue["registered"] = true;
         sendStat("NSources", m_sourceInfoMap.size());
@@ -281,6 +287,16 @@ namespace dqm4hep {
       m_nCollectedEvents60 = 0;
       m_nCollectedBytes60 = 0;
       m_lastStatCall60 = core::now();
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void EventCollector::printSourceMap() {
+      for(auto &source : m_sourceInfoMap) {
+        dqm_debug( "== Source '{0}' ==", source.first );
+        dqm_debug( "     Client id: '{0}' ==", source.second.m_clientId );
+        dqm_debug( "     Streamer:  '{0}' ==", source.second.m_streamerName );
+      }
     }
 
   }

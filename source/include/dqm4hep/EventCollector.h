@@ -70,13 +70,14 @@ namespace dqm4hep {
       void handleClientUnregistration(CommandEvent *event);
       void sendStatsTimer10();
       void sendStatsTimer60();
+      void printSourceMap();
       
       struct SourceInfo
       {
         SourceInfo() = default;
         
         SourceInfo(SourceInfo&& info) :
-          m_clientId(m_clientId),
+          m_clientId(std::move(m_clientId)),
           m_name(std::move(m_name)),
           m_streamerName(std::move(m_streamerName)),
           m_collectors(std::move(m_collectors)),

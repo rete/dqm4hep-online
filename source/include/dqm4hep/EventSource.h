@@ -141,7 +141,7 @@ namespace dqm4hep {
        *  
        *  @param  info the json value to receive
        */
-      void getSourceInfo(Json::Value &info);
+      void getSourceInfo(core::json &info);
       
       /**
        *  @brief  Register the event source to the specified collector
@@ -150,7 +150,7 @@ namespace dqm4hep {
        *  @param  info the source info to send to the collector
        *  @return bool whether the source was registered
        */
-      bool registerMe(const std::string &collector, const Json::Value &info);
+      bool registerMe(const std::string &collector, const core::json &info);
       
       /**
        *  @brief  Un-register the event source from the specified collector

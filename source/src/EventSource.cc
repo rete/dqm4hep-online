@@ -120,7 +120,7 @@ namespace dqm4hep {
       
       m_bufferDevice = std::make_shared<xdrstream::BufferDevice>(2*1024*1024);
       
-      Json::Value sourceInfo;
+      core::json sourceInfo;
       this->getSourceInfo(sourceInfo);
       
       for(auto colIter : m_collectorInfos)
@@ -171,7 +171,7 @@ namespace dqm4hep {
       
       THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, m_eventStreamer->write(event, m_bufferDevice.get()));
       
-      Json::Value sourceInfo;
+      core::json sourceInfo;
       net::Buffer collectBuffer;
       auto model = collectBuffer.createModel();
       collectBuffer.setModel(model);
@@ -230,58 +230,41 @@ namespace dqm4hep {
 
     //-------------------------------------------------------------------------------------------------
 
-    void EventSource::getSourceInfo(Json::Value &info)
+    void EventSource::getSourceInfo(core::json &info)
     {
-      // source name
-      info["source"] = m_sourceName;
-      
       // host info
-      core::StringMap hostInfo; Json::Value hostInfoValue;
+      core::StringMap hostInfo;
       core::fillHostInfo(hostInfo);
-      
-      for(auto hi : hostInfo)
-        hostInfoValue[hi.first] = hi.second;
-      
-      info["host"] = hostInfoValue;
-      
+                  
       // collectors
-      Json::Value collectorsValue;
+      core::json collectorsValue;
       for(auto colIter : m_collectorInfos)
-        collectorsValue.append(colIter.first);
+        collectorsValue.push_back(colIter.first);
       
+      info["source"] = m_sourceName;
+      info["host"] = hostInfo;
       info["collectors"] = collectorsValue;
-      
-      // streamer name
       info["streamer"] = m_streamerName;
     }
     
     //-------------------------------------------------------------------------------------------------
     
-    bool EventSource::registerMe(const std::string &collector, const Json::Value &info)
+    bool EventSource::registerMe(const std::string &collector, const core::json &info)
     {
-      std::string requestName = "/dqm4hep/app/evtcol/" + collector + "/register";
-      Json::StreamWriterBuilder builder;
-      std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
-      std::ostringstream infoStr;
-      writer->write(info, &infoStr);
-      
+      std::string requestName = "/dqm4hep/app/evtcol/" + collector + "/register";      
       bool returnValue(false);
       net::Buffer requestBuffer;
       auto model = requestBuffer.createModel<std::string>();
       requestBuffer.setModel(model);
-      model->move(std::move(infoStr.str()));
+      model->move(std::move(info.dump()));
       
       m_client.sendRequest(requestName, requestBuffer, [&returnValue,&collector](const net::Buffer &buffer){
-        Json::Value response;
-        Json::CharReaderBuilder readerBuilder;
-        std::unique_ptr<Json::CharReader> reader(readerBuilder.newCharReader());
-        reader->parse(buffer.begin(), buffer.end(), &response, nullptr);
-        
-        const bool registered(response.get("registered", false).asBool());
+        core::json response = core::json::parse(buffer.begin(), buffer.end());        
+        const bool registered(response.value<bool>("registered", false));
         
         if(!registered)
         {
-          const std::string message(response.get("message", "The event collector is maybe not available or is down !").asString());
+          const std::string message(response.value<std::string>("message", "The event collector is maybe not available or is down !"));
           dqm_warning( "EventSource::registerMe(): Couldn't register source to collector '{0}': {1}", collector, message );
           returnValue = false;
         }

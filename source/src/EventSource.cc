@@ -259,7 +259,11 @@ namespace dqm4hep {
       model->move(std::move(info.dump()));
       
       m_client.sendRequest(requestName, requestBuffer, [&returnValue,&collector](const net::Buffer &buffer){
-        core::json response = core::json::parse(buffer.begin(), buffer.end());        
+        core::json response({});
+        
+        if(0 != buffer.size()) {
+          response = core::json::parse(buffer.begin(), buffer.end());
+        }
         const bool registered(response.value<bool>("registered", false));
         
         if(!registered)

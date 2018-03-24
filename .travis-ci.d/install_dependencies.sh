@@ -33,33 +33,11 @@ if [ $? -ne 0 ]; then
 fi
 cd ../..
 
-# install jsoncpp
-git clone https://github.com/open-source-parsers/jsoncpp.git
-cd jsoncpp
-mkdir install
-export JSONCPP_INSTALL_DIR=$PWD/install
-git checkout 1.8.3
-mkdir -p build && cd build
-cmake -DBUILD_SHARED_LIBS=ON -DBUILD_STATIC_LIBS=OFF -DJSONCPP_WITH_TESTS=OFF -DJSONCPP_WITH_WARNING_AS_ERROR=OFF -DCMAKE_INSTALL_PREFIX=${JSONCPP_INSTALL_DIR} ..
-
-if [ $? -ne 0 ]; then
-    echo "Failed to run jsoncpp cmake"
-    exit 1
-fi
-
-make install VERBOSE=1
-
-if [ $? -ne 0 ]; then
-    echo "Failed to run json make"
-    exit 1
-fi
-cd ../..
-
 # install dqm4hep-core
 git clone https://github.com/dqm4hep/dqm4hep-core.git
 cd dqm4hep-core
 mkdir -p build && cd build
-cmake -DINSTALL_DOC=OFF -Dxdrstream_DIR=$PWD/../../xdrstream -DJSONCPP_DIR=$PWD/../../jsoncpp/install -DCMAKE_MODULE_PATH=$PWD/../../dqm4hep/cmake -DBUILD_TESTS=OFF ..
+cmake -DINSTALL_DOC=OFF -Dxdrstream_DIR=$PWD/../../xdrstream -DCMAKE_MODULE_PATH=$PWD/../../dqm4hep/cmake -DBUILD_TESTS=OFF ..
 
 if [ $? -ne 0 ]; then
     echo "Failed to run dqm4hep-core cmake"
@@ -78,7 +56,7 @@ cd ../..
 git clone https://github.com/dqm4hep/dqm4hep-net.git
 cd dqm4hep-net
 mkdir -p build && cd build
-cmake -DINSTALL_DOC=OFF -DCMAKE_MODULE_PATH=$PWD/../dependencies/dqm4hep/cmake -Dxdrstream_DIR=$PWD/../dependencies/xdrstream -DDQMCore_DIR=$PWD/../dependencies/dqm4hep-core ..
+cmake -DINSTALL_DOC=OFF -Dxdrstream_DIR=$PWD/../../xdrstream -DCMAKE_MODULE_PATH=$PWD/../../dqm4hep/cmake -DDQMCore_DIR=$PWD/../../dqm4hep-core ..
 
 if [ $? -ne 0 ]; then
     echo "Failed to run dqm4hep-net cmake"

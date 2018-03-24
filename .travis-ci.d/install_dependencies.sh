@@ -78,7 +78,7 @@ cd ../..
 git clone https://github.com/dqm4hep/dqm4hep-net.git
 cd dqm4hep-net
 mkdir -p build && cd build
-cmake -DINSTALL_DOC=OFF -DCMAKE_MODULE_PATH=$PWD/../../dqm4hep/cmake -DJSONCPP_DIR=$PWD/../../jsoncpp/install ..
+cmake -DINSTALL_DOC=OFF -DCMAKE_MODULE_PATH=$PWD/../dependencies/dqm4hep/cmake -Dxdrstream_DIR=$PWD/../dependencies/xdrstream -DDQMCore_DIR=$PWD/../dependencies/dqm4hep-core ..
 
 if [ $? -ne 0 ]; then
     echo "Failed to run dqm4hep-net cmake"

@@ -151,53 +151,34 @@ namespace dqm4hep {
 
     void RunControlServer::sor(dqm4hep::core::Run &run)
     {
-      Json::Value jsonRun;
+      core::json jsonRun;
       run.toJson(jsonRun);
-
-      Json::StreamWriterBuilder builder;
-      builder["indentation"] = "  ";
-      std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
-      std::ostringstream jsonRunStr;
-      writer->write(jsonRun, &jsonRunStr);
-
-      m_pSorService->send(jsonRunStr.str());
+      m_pSorService->send(jsonRun.dump());
     }
 
     //-------------------------------------------------------------------------------------------------
 
     void RunControlServer::eor(const dqm4hep::core::Run &run)
     {
-      Json::Value jsonRun;
+      core::json jsonRun;
       run.toJson(jsonRun);
-
-      Json::StreamWriterBuilder builder;
-      builder["indentation"] = "  ";
-      std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
-      std::ostringstream jsonRunStr;
-      writer->write(jsonRun, &jsonRunStr);
-
-      m_pEorService->send(jsonRunStr.str());
+      m_pEorService->send(jsonRun.dump());
     }
 
     //-------------------------------------------------------------------------------------------------
 
     void RunControlServer::sendCurrentRun(const Buffer &request, Buffer &response)
     {
-      Json::Value jsonStatus, jsonRun;
+      core::json jsonStatus, jsonRun;
       m_runControl.currentRun().toJson(jsonRun);
       
-      jsonStatus["running"] = m_runControl.isRunning();
-      jsonStatus["run"] = jsonRun;
-
-      Json::StreamWriterBuilder builder;
-      builder["indentation"] = "  ";
-      std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
-      std::ostringstream jsonStatusStr;
-      writer->write(jsonStatus, &jsonStatusStr);
-
+      jsonStatus = {
+        {"running", m_runControl.isRunning()},
+        {"run", jsonRun}
+      };
+      
       auto model = response.createModel<std::string>();
-      std::string jsonStatusStr2(jsonStatusStr.str());
-      model->move(std::move(jsonStatusStr2));
+      model->move(std::move(jsonStatus.dump()));
       response.setModel(model);
     }
 

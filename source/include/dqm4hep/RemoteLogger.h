@@ -40,16 +40,32 @@ namespace dqm4hep {
 
   namespace online {
     
+    /**
+     *  @brief  RemoteLogger class
+     */
     class RemoteLogger : public spdlog::sinks::sink {
     public:
+      /**
+       *  @brief  Constructor
+       */
       RemoteLogger();
+      
+      /**
+       *  @brief  Log a message
+       *  
+       *  @param  msg the spdlog log message 
+       */
       void log(const spdlog::details::log_msg& msg) override;
+      
+      /**
+       *  @brief  Flush the message
+       */
       void flush() override;
       
     private:
-      core::json     m_message;
-      std::string    m_hostname;
-      net::Client    m_client;
+      core::json     m_message;     ///< The log message to send as json
+      std::string    m_hostname;    ///< The current host name
+      net::Client    m_client;      ///< The net client interface
     };
 
   }

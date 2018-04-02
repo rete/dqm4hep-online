@@ -68,10 +68,9 @@ namespace dqm4hep {
       }
       // check log consistency
       bool logConsistent = (
-        1 == logMessage.count("name") &&
+        1 == logMessage.count("logger") &&
         1 == logMessage.count("level") &&
         1 == logMessage.count("message") &&
-        1 == logMessage.count("time") &&
         1 == logMessage.count("host") &&
         1 == logMessage.count("pid")
       );

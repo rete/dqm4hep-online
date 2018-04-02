@@ -51,6 +51,11 @@ namespace dqm4hep {
       RemoteLogger();
       
       /**
+       *  @brief  Create a shared pointer of RemoteLogger
+       */
+      static std::shared_ptr<RemoteLogger> make_shared();
+      
+      /**
        *  @brief  Log a message
        *  
        *  @param  msg the spdlog log message 

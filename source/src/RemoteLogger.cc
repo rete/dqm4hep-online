@@ -41,12 +41,17 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
+    std::shared_ptr<RemoteLogger> RemoteLogger::make_shared() {
+      return std::make_shared<RemoteLogger>();
+    }
+        
+    //-------------------------------------------------------------------------------------------------
+    
     void RemoteLogger::log(const spdlog::details::log_msg& msg) {
       m_message = {
-        {"name",   *msg.logger_name},
+        {"logger",   *msg.logger_name},
         {"level",   msg.level},
         {"message", msg.raw.str()},
-        {"time",    std::chrono::system_clock::to_time_t(msg.time)},
         {"host",    m_hostname},
         {"pid",     dqm4hep::core::pid()}
       };

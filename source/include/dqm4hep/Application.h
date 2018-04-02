@@ -36,6 +36,7 @@
 #include "dqm4hep/AppEvent.h"
 #include "dqm4hep/AppEvents.h"
 #include "dqm4hep/AppEventLoop.h"
+#include "dqm4hep/Logger.h"
 
 namespace dqm4hep {
 
@@ -129,6 +130,16 @@ namespace dqm4hep {
        *  @brief  Change the application state
        */
       void setState(const std::string &state);
+      
+      /**
+       *  @brief  Get the application log level
+       */
+      core::Logger::Level logLevel() const;
+      
+      /**
+       *  @brief  Get the application log level
+       */
+      void setLogLevel(core::Logger::Level lvl);
       
       /**
        *  @brief  Create a statistics entry.
@@ -397,6 +408,8 @@ namespace dqm4hep {
       NetworkHandlerPtrMap         m_commandHandlerPtrMap;            ///< The map handling command handlers from the server interface
 
       core::json                   m_statistics = {};                 ///< The json value handling the application statistics
+      core::Logger::LoggerPtr      m_logger = {nullptr};              ///< The application logger
+      core::Logger::Level          m_logLevel = {spdlog::level::info}; ///< The logger log level
     };
     
     //-------------------------------------------------------------------------------------------------

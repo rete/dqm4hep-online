@@ -148,8 +148,7 @@ private:
 
 //-------------------------------------------------------------------------------------------------
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
   std::string cmdLineFooter = "Please report bug to <dqm4hep@gmail.com>";
   TCLAP::CmdLine *pCommandLine = new TCLAP::CmdLine(cmdLineFooter, ' ', DQMOnline_VERSION_STR);
 
@@ -189,8 +188,7 @@ int main(int argc, char* argv[])
   // install signal handlers
   signal(SIGINT,  int_key_signal_handler);
   
-  try
-  {
+  try {
     Client client;
     LogPrinter printer(level, selectLoggersArg.getValue(), selectHostsArg.getValue());
     client.subscribe(OnlineRoutes::OnlineManager::logs(), &printer, &LogPrinter::printLog);
@@ -198,8 +196,7 @@ int main(int argc, char* argv[])
     while(not stopFlag.load())
       dqm4hep::core::sleep(std::chrono::seconds(1));
   }
-  catch(StatusCodeException &exception)
-  {
+  catch(StatusCodeException &exception) {
     dqm_error( "Caught exception while running: {0}", exception.toString() );
     return exception.getStatusCode();
   }

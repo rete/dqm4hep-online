@@ -57,6 +57,7 @@ ENDMACRO()
 
 BUILD_EXECUTABLE( main dqm4hep-start-rc-server bin )
 BUILD_EXECUTABLE( main dqm4hep-start-random-event-source bin )
+BUILD_EXECUTABLE( main dqm4hep-start-online-mgr bin )
 
 # # -------------------------------------------------
 # # build start external application executable

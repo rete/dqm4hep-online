@@ -34,8 +34,7 @@ namespace dqm4hep {
   namespace online {
     
     EventCollector::EventCollector() : 
-      Application()
-    {      
+      Application() {
     }
 
     //-------------------------------------------------------------------------------------------------
@@ -67,13 +66,11 @@ namespace dqm4hep {
       // parse command line
       m_cmdLine->parse(argc, argv);
 
-      // set log level
       std::string verbosity(verbosityArg.getValue());
-      core::Logger::setLogLevel(core::Logger::logLevelFromString(verbosity));;
-
       std::string collectorName(collectorNameArg.getValue());
       this->setType("evtcol");
       this->setName(collectorName);
+      this->setLogLevel(core::Logger::logLevelFromString(verbosity));
     }
     
     //-------------------------------------------------------------------------------------------------

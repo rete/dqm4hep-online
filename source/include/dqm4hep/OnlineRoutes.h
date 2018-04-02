@@ -40,15 +40,13 @@ namespace dqm4hep {
      *  @brief  OnlineRoutes class.
      *          Defines all network routes for the online package 
      */
-    class OnlineRoutes
-    {
+    class OnlineRoutes {
     public:
       /**
        *  @brief  RunControl class.
        *          Defines the routes related to run control
        */
-      class RunControl
-      {
+      class RunControl {
       public:
         /**
          *  @brief  Definition of the status RPC service name
@@ -74,7 +72,28 @@ namespace dqm4hep {
          */
         static const std::string eor(const std::string &runControlName);
       };
-      
+
+      //-------------------------------------------------------------------------------------------------
+      //-------------------------------------------------------------------------------------------------      
+
+      class Application {
+        /**
+         *  @brief  Get the server name given an app type and name
+         *  
+         *  @param  type the app type
+         *  @param  name the app name
+         */
+        static std::string serverName(const std::string &type, const std::string &name);
+        
+        /**
+         *  @brief  Get the app state service name given an app type and name
+         *  
+         *  @param  type the app type
+         *  @param  name the app name
+         */
+        static std::string state(const std::string &type, const std::string &name);
+      };
+
       //-------------------------------------------------------------------------------------------------
       //-------------------------------------------------------------------------------------------------
       

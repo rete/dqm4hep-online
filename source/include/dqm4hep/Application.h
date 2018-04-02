@@ -390,7 +390,6 @@ namespace dqm4hep {
       AppEventLoop                 m_eventLoop = {};                  ///< The application event loop
       std::shared_ptr<net::Server> m_server = {nullptr};              ///< The main server interface of the application
       net::Service                *m_pAppStateService = {nullptr};    ///< The service for application state, updated when the state changes
-      net::Service                *m_pAppStatsService = {nullptr};    ///< The service for application statistics, updated when a statistic changes
       net::Client                  m_client;                          ///< The main client interface of the application
       
       NetworkHandlerPtrMap         m_serviceHandlerPtrMap;            ///< The map handling service updates from the client interface

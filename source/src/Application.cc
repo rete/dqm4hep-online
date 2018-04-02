@@ -27,6 +27,7 @@
 
 // -- dqm4hep headers
 #include "dqm4hep/Application.h"
+#include "dqm4hep/OnlineRoutes.h"
 #include "dqm4hep/Logging.h"
 
 namespace dqm4hep {
@@ -111,7 +112,7 @@ namespace dqm4hep {
       object["appType"] = this->type();
       object["appName"] = this->name();
       object["time"] = core::TimePoint::clock::to_time_t(core::now());
-      m_pAppStatsService->send(object.dump());
+      m_client.sendCommand(OnlineRoutes::OnlineManager::appStats(), object.dump());
     }
 
     //-------------------------------------------------------------------------------------------------    
@@ -144,13 +145,10 @@ namespace dqm4hep {
         dqm_error( "Application::init(): failed to parse cmd line !" );
         throw core::StatusCodeException(core::STATUS_CODE_FAILURE);
       }
-      std::string baseName = "/dqm4hep/app/";
-      std::string serverName = baseName + this->type() + "/" + this->name();
-      m_server = std::make_shared<net::Server>(serverName);
-      m_pAppStateService = m_server->createService(serverName + "/state");
+      m_server = std::make_shared<net::Server>(OnlineRoutes::Application::serverName(this->type(), this->name()));
+      m_pAppStateService = m_server->createService(OnlineRoutes::Application::state());
       
       if(m_statsEnabled) {
-        m_pAppStatsService = m_server->createService(serverName + "/stats");
         createInternalStats();
       }
       m_server->onClientExit().connect(this, &Application::sendClientExitEvent);

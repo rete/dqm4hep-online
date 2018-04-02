@@ -34,6 +34,7 @@
 #include <dqm4hep/Server.h>
 #include <dqm4hep/Service.h>
 #include <dqm4hep/RequestHandler.h>
+#include <dqm4hep/Logger.h>
 
 // -- std headers
 #include <atomic>
@@ -62,6 +63,15 @@ namespace dqm4hep {
        */
       void stop();
       
+      /**
+       *  @brief  Set the rotating log file properties
+       *
+       *  @param  fileBaseName the log file base name (.log appended) 
+       *  @param  maxFileSize the maximum single file size (unit bytes)
+       *  @param  maxNFiles the maximum number of rotating files
+       */
+      void setLogProperties(const std::string &fileBaseName, size_t maxFileSize, size_t maxNFiles);
+      
     private:
       /**
        *  @brief  Collect a log message (server command)
@@ -77,11 +87,24 @@ namespace dqm4hep {
        */
       void collectAppStat(const net::Buffer &buffer);
       
+      /**
+       *  @brief  Log message in log file
+       * 
+       *  @param  message the json object describing the log message
+       */
+      void logMessage(const core::json &message);
+      
+      std::string currentTimeToString() const;
+            
     private:
       std::shared_ptr<net::Server>            m_server = {nullptr};           ///< The main server
       net::Service                           *m_logsService = {nullptr};      ///< The logs service
       net::Service                           *m_appStatsService = {nullptr};  ///< The application stats service
       std::atomic<bool>                       m_stopFlag = {false};           ///< The main loop stop flag
+      std::string                             m_logFileBaseName = {""};
+      std::size_t                             m_logFileMaxSize = {2*1024*1024};
+      std::size_t                             m_logFileNFiles = {2};
+      core::Logger::LoggerPtr                 m_logger = {nullptr};
     };
 
   }

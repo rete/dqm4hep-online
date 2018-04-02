@@ -53,7 +53,7 @@ namespace dqm4hep {
       /**
        *  @brief  Create a shared pointer of RemoteLogger
        */
-      static std::shared_ptr<RemoteLogger> make_shared();
+      static core::Logger::AppenderPtr make_shared();
       
       /**
        *  @brief  Log a message

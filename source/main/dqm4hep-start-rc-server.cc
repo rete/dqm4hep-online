@@ -30,6 +30,7 @@
 #include "dqm4hep/StatusCodes.h"
 #include "dqm4hep/PluginManager.h"
 #include "dqm4hep/Logging.h"
+#include "dqm4hep/RemoteLogger.h"
 #include "dqm4hep/RunControlServer.h"
 #include "DQMOnlineConfig.h"
 
@@ -52,30 +53,16 @@ std::shared_ptr<RunControlServer> runControlServer;
 //-------------------------------------------------------------------------------------------------
 
 // key interrupt signal handling
-void int_key_signal_handler(int signal)
-{
-  dqm_warning( "*** SIGN INT ***" );
-  dqm_warning( "Caught signal {0}. Stopping the application.", signal );
-
-  if(runControlServer) runControlServer->stop();
+void int_key_signal_handler(int signal) {
+  dqm_info( "Caught CTRL+C. Stopping run control..." );
+  if(runControlServer) {
+    runControlServer->stop();
+  }
 }
 
 //-------------------------------------------------------------------------------------------------
 
-// segmentation violation signal handling
-void seg_viol_signal_handling(int signal)
-{
-  dqm_warning( "*** SIGN VIOL ***" );
-  dqm_warning( "Caught signal {0}. Stopping the application.", signal );
-
-  if(runControlServer) runControlServer->stop();
-  exit(1);
-}
-
-//-------------------------------------------------------------------------------------------------
-
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
   dqm4hep::core::screenSplash();
 
   std::string cmdLineFooter = "Please report bug to <dqm4hep@gmail.com>";
@@ -131,21 +118,24 @@ int main(int argc, char* argv[])
   pCommandLine->parse(argc, argv);
 
   // install signal handlers
-  dqm_info( "Installing signal handlers ..." );
   signal(SIGINT,  int_key_signal_handler);
-  //	signal(SIGSEGV, seg_viol_signal_handling);
+  
+  // set log level
+  std::string verbosity(verbosityArg.getValue());
+  std::string loggerName("run-ctrl:" + runControlNameArg.getValue());
+  Logger::createLogger(loggerName, {Logger::coloredConsole(), RemoteLogger::make_shared()});
+  Logger::setMainLogger(loggerName);
+  Logger::setLogLevel(Logger::logLevelFromString(verbosity));
 
   // parse user parameters
   const StringVector &parameters(parameterArg.getValue());
   StringMap parameterMap;
   
-  for(const auto &parameter : parameters)
-  {
+  for(const auto &parameter : parameters) {
     StringVector keyValuePair;
     dqm4hep::core::tokenize(parameter, keyValuePair, "=");
     
-    if(keyValuePair.size() != 2)
-    {
+    if(keyValuePair.size() != 2) {
       dqm_error( "Invalid parsing of user argument: '{0}'. Expected key=value !" );
       throw StatusCodeException(STATUS_CODE_FAILURE);
     }

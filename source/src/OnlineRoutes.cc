@@ -32,28 +32,55 @@ namespace dqm4hep {
 
   namespace online {
 
-    const std::string OnlineRoutes::RunControl::status(const std::string &runControlName)
-    {
-      return std::move( "/dqm4hep/RunControl/" + runControlName + "/Status" );
+    const std::string OnlineRoutes::RunControl::status(const std::string &runControlName) {
+      return std::string( "/dqm4hep/RunControl/" + runControlName + "/Status" );
     }
     
     //-------------------------------------------------------------------------------------------------
     
-    const std::string OnlineRoutes::RunControl::sor(const std::string &runControlName)
-    {
-      return std::move( "/dqm4hep/RunControl/" + runControlName + "/SOR" );
+    const std::string OnlineRoutes::RunControl::sor(const std::string &runControlName) {
+      return std::string( "/dqm4hep/RunControl/" + runControlName + "/SOR" );
     }
     
     //-------------------------------------------------------------------------------------------------
     
-    const std::string OnlineRoutes::RunControl::eor(const std::string &runControlName)
-    {
-      return std::move( "/dqm4hep/RunControl/" + runControlName + "/EOR" );
+    const std::string OnlineRoutes::RunControl::eor(const std::string &runControlName) {
+      return std::string( "/dqm4hep/RunControl/" + runControlName + "/EOR" );
     }
     
     //-------------------------------------------------------------------------------------------------
     //-------------------------------------------------------------------------------------------------
     
+    const std::string OnlineRoutes::OnlineManager::serverName() {
+      return std::string("/dqm4hep/onlineMgr");
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    const std::string OnlineRoutes::OnlineManager::logs() {
+      return std::string("/dqm4hep/onlineMgr/logs");
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+
+    const std::string OnlineRoutes::OnlineManager::appStats() {
+      return std::string("/dqm4hep/onlineMgr/appStats");
+    }
+
+    //-------------------------------------------------------------------------------------------------    
+
+    const std::string OnlineRoutes::OnlineManager::collectLog() {
+      return std::string("/dqm4hep/onlineMgr/collectLog");
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    const std::string OnlineRoutes::OnlineManager::collectAppStat() {
+      return std::string("/dqm4hep/onlineMgr/collectAppStat");
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
   }
 
 } 

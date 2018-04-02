@@ -13,6 +13,7 @@ ADD_DEFINITIONS("-Wno-long-long -Wreturn-type -Werror")
 
 #AUX_SOURCE_DIRECTORY( src SRC_FILES )
 SET( SRC_FILES ${SRC_FILES} src/RemoteLogger.cc )
+SET( SRC_FILES ${SRC_FILES} src/OnlineManagerServer.cc )
 SET( SRC_FILES ${SRC_FILES} src/OnlineRoutes.cc )
 SET( SRC_FILES ${SRC_FILES} src/EventSource.cc )
 SET( SRC_FILES ${SRC_FILES} src/RunControl.cc )

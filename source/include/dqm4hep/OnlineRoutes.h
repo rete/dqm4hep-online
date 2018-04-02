@@ -74,6 +74,41 @@ namespace dqm4hep {
          */
         static const std::string eor(const std::string &runControlName);
       };
+      
+      //-------------------------------------------------------------------------------------------------
+      //-------------------------------------------------------------------------------------------------
+      
+      /**
+       *  @brief  OnlineManager class
+       *          Defines routes related to the online manager server
+       */
+      class OnlineManager {
+      public:
+        /**
+         *  @brief  Get the online manager server name
+         */
+        static const std::string serverName();
+        
+        /**
+         *  @brief  Get the name of the service that sends (server) or receives (client) logs 
+         */
+        static const std::string logs();
+
+        /**
+         *  @brief  Get the name of the service that sends (server) or receive (client) app statistics
+         */
+        static const std::string appStats();
+        
+        /**
+         *  @brief  Get the name of the commmand to send (client) or collect (server) a log message
+         */
+        static const std::string collectLog();
+        
+        /**
+         *  @brief  Get the name of the commmand to send (client) or collect (server) an app statistics
+         */
+        static const std::string collectAppStat();
+      };
     };
 
   }

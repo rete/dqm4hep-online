@@ -27,6 +27,7 @@
 
 // -- dqm4hep headers
 #include "dqm4hep/RemoteLogger.h"
+#include "dqm4hep/OnlineRoutes.h"
 
 namespace dqm4hep {
 
@@ -45,12 +46,11 @@ namespace dqm4hep {
         {"name",   *msg.logger_name},
         {"level",   msg.level},
         {"message", msg.raw.str()},
-        {"time",    int64_t(std::chrono::system_clock::to_time_t(msg.time))},
+        {"time",    std::chrono::system_clock::to_time_t(msg.time)},
         {"host",    m_hostname},
         {"pid",     dqm4hep::core::pid()}
       };
-      
-      m_client.sendCommand("/dqm4hep/logcollector/collect", m_message.dump());
+      m_client.sendCommand(OnlineRoutes::OnlineManager::collectLog(), m_message.dump());
     }
     
     //-------------------------------------------------------------------------------------------------

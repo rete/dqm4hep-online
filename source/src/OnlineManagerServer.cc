@@ -27,6 +27,7 @@
 
 
 #include <dqm4hep/OnlineManagerServer.h>
+#include <dqm4hep/OnlineRoutes.h>
 #include <dqm4hep/Logging.h>
 
 namespace dqm4hep {
@@ -34,14 +35,13 @@ namespace dqm4hep {
   namespace online {
 
     void OnlineManagerServer::run() {
-      std::string serverName = "/dqm4hep/onlineMgr";
-      m_server = std::make_shared<net::Server>(serverName);
+      m_server = std::make_shared<net::Server>(OnlineRoutes::OnlineManager::serverName());
       
-      m_logsService = m_server->createService(serverName + "/logs");
-      m_appStatsService = m_server->createService(serverName + "/appStats");
+      m_logsService = m_server->createService(OnlineRoutes::OnlineManager::logs());
+      m_appStatsService = m_server->createService(OnlineRoutes::OnlineManager::appStats());
       
-      m_server->createCommandHandler(serverName + "/collectLog", this, &OnlineManagerServer::collectLog);
-      m_server->createCommandHandler(serverName + "/collectAppStat", this, &OnlineManagerServer::collectAppStat);
+      m_server->createCommandHandler(OnlineRoutes::OnlineManager::collectLog(), this, &OnlineManagerServer::collectLog);
+      m_server->createCommandHandler(OnlineRoutes::OnlineManager::collectAppStat(), this, &OnlineManagerServer::collectAppStat);
       
       m_server->start();
       

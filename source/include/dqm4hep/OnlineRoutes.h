@@ -94,6 +94,38 @@ namespace dqm4hep {
          */
         static std::string state(const std::string &type, const std::string &name);
       };
+      
+      //-------------------------------------------------------------------------------------------------
+      //-------------------------------------------------------------------------------------------------
+
+      class EventCollector {
+      public:
+        /**
+         *  @brief  Get the event collector application type
+         */
+        static std::string applicationType();
+        
+        /**
+         *  @brief  Get the event collector request name to register a new event source
+         * 
+         *  @param  collector the collector name
+         */
+        static std::string registerSource(const std::string &collector);
+        
+        /**
+         *  @brief  Get the event collector command name to unregister a new event source
+         * 
+         *  @param  collector the collector name
+         */
+        static std::string unregisterSource(const std::string &collector);
+        
+        /**
+         *  @brief  Get the event collector command name to collect an event
+         * 
+         *  @param  collector the collector name
+         */
+        static std::string collectEvent(const std::string &collector);
+      };
 
       //-------------------------------------------------------------------------------------------------
       //-------------------------------------------------------------------------------------------------

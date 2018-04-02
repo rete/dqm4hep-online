@@ -80,7 +80,7 @@ int main(int argc, char* argv[]) {
       , "log-file-name"
       , "The log file base name"
       , false
-      , "dqm4hep-online-log"
+      , ""
       , "string");
   pCommandLine->add(logFileBaseNameArg);
   
@@ -107,18 +107,8 @@ int main(int argc, char* argv[]) {
   
   std::string verbosity(verbosityArg.getValue());
   std::string loggerName("online-mgr");
-  
-  std::vector<Logger::AppenderPtr> appenders = {
-    Logger::coloredConsole(),
-    Logger::rotatingFile(
-      logFileBaseNameArg.getValue(), 
-      logFileMaxSizeArg.getValue(), 
-      logFileMaxNFilesArg.getValue()
-    ), 
-    RemoteLogger::make_shared()
-  };
     
-  Logger::createLogger(loggerName, appenders);
+  Logger::createLogger(loggerName, {Logger::coloredConsole()});
   Logger::setMainLogger(loggerName);
   Logger::setLogLevel(Logger::logLevelFromString(verbosity));
 
@@ -128,6 +118,13 @@ int main(int argc, char* argv[]) {
   try
   {
     server = std::make_shared<OnlineManagerServer>();
+    if(logFileBaseNameArg.isSet()) {
+      server->setLogProperties(
+        logFileBaseNameArg.getValue(), 
+        logFileMaxSizeArg.getValue(), 
+        logFileMaxNFilesArg.getValue()
+      );
+    }
     server->run();
   }
   catch(StatusCodeException &exception)

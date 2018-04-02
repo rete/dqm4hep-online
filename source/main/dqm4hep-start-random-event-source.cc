@@ -30,6 +30,7 @@
 #include "dqm4hep/StatusCodes.h"
 #include "dqm4hep/PluginManager.h"
 #include "dqm4hep/Logging.h"
+#include "dqm4hep/RemoteLogger.h"
 #include "dqm4hep/EventSource.h"
 #include "dqm4hep/GenericEvent.h"
 #include "DQMOnlineConfig.h"
@@ -54,18 +55,8 @@ std::atomic_bool running(true);
 // key interrupt signal handling
 void int_key_signal_handler(int signal)
 {
-  dqm_warning( "*** SIGN INT ***" );
-  dqm_warning( "Caught signal {0}. Stopping the application.", signal );
-  running = false;
-}
-
-//-------------------------------------------------------------------------------------------------
-
-// segmentation violation signal handling
-void seg_viol_signal_handling(int signal)
-{
-  dqm_warning( "*** SIGN VIOL ***" );
-  dqm_warning( "Caught signal {0}. Stopping the application.", signal );
+  std::cout << std::endl;
+  dqm_info( "Caught CTRL+C. Exiting..." );
   running = false;
 }
 
@@ -101,7 +92,7 @@ int main(int argc, char* argv[])
   TCLAP::MultiArg<std::string> collectorNameArg(
       "c"
       , "collector"
-      , "List of collector to send the event to"
+      , "List of collectors to send the event to"
       , true
       , "string");
   pCommandLine->add(collectorNameArg);
@@ -110,13 +101,13 @@ int main(int argc, char* argv[])
   pCommandLine->parse(argc, argv);
 
   // install signal handlers
-  dqm_info( "Installing signal handlers ..." );
   signal(SIGINT,  int_key_signal_handler);
-  //	signal(SIGSEGV, seg_viol_signal_handling);
 
   // set log level
   std::string verbosity(verbosityArg.getValue());
-  Logger::setLogLevel(Logger::logLevelFromString(verbosity));;
+  Logger::createLogger("rand-src:" + sourceNameArg.getValue(), {Logger::coloredConsole(), RemoteLogger::make_shared()});
+  Logger::setMainLogger("rand-src:" + sourceNameArg.getValue());
+  Logger::setLogLevel(Logger::logLevelFromString(verbosity));
 
   //
   auto eventSource = EventSource::make_shared(sourceNameArg.getValue());

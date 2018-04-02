@@ -34,23 +34,11 @@ std::shared_ptr<dqm4hep::online::EventCollector> application;
 //-------------------------------------------------------------------------------------------------
 
 // key interrupt signal handling
-void int_key_signal_handler(int signal)
-{
-  dqm_warning( "*** SIGN INT ***" );
-  dqm_warning( "Caught signal {0}. Stopping the application.", signal );
-
-  if(application) application->exit(0);
-}
-
-//-------------------------------------------------------------------------------------------------
-
-// segmentation violation signal handling
-void seg_viol_signal_handling(int signal)
-{
-  dqm_warning( "*** SIGN VIOL ***" );
-  dqm_warning( "Caught signal {0}. Stopping the application.", signal );
-
-  if(application) application->exit(signal);
+void int_key_signal_handler(int signal) {
+  dqm_info( "Caught CTRL+C. Stopping event collector..." );
+  if(application) {
+    application->exit(0);
+  }
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -62,11 +50,34 @@ int main(int argc, char* argv[])
   // install signal handlers
   dqm_info( "Installing signal handlers ..." );
   signal(SIGINT,  int_key_signal_handler);
-  // signal(SIGSEGV, seg_viol_signal_handling);
   
   // initialize and run the application
+  int returnCode(0);
   application = std::make_shared<dqm4hep::online::EventCollector>();
-  application->init(argc, argv);
   
-  return application->exec();
+  try {
+    application->init(argc, argv);    
+  }
+  catch(dqm4hep::core::StatusCodeException &e) {
+    dqm_error( "init: Caught StatusCodeException: '{0}'", e.toString() );
+    return e.getStatusCode();
+  }
+  catch(...) {
+    dqm_error( "init: Caught unknown exception" );
+    return 1;
+  }
+  
+  try {
+    returnCode = application->exec();
+  }
+  catch(dqm4hep::core::StatusCodeException &e) {
+    dqm_error( "exec: Caught StatusCodeException: '{0}'", e.toString() );
+    return e.getStatusCode();
+  }
+  catch(...) {
+    dqm_error( "exec: Caught unknown exception" );
+    return 1;
+  }
+  
+  return returnCode;
 }

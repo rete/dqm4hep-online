@@ -77,6 +77,7 @@ namespace dqm4hep {
       //-------------------------------------------------------------------------------------------------      
 
       class Application {
+      public:
         /**
          *  @brief  Get the server name given an app type and name
          *  

@@ -30,6 +30,7 @@
 #include "dqm4hep/StatusCodes.h"
 #include "dqm4hep/Logging.h"
 #include "dqm4hep/OnlineRoutes.h"
+#include "dqm4hep/RemoteLogger.h"
 #include "dqm4hep/Client.h"
 #include "DQMOnlineConfig.h"
 
@@ -61,6 +62,9 @@ void int_key_signal_handler(int signal) {
 
 //-------------------------------------------------------------------------------------------------
 
+/**
+ *  @brief Return the current time as std::string with format HH:MM:SS
+ */
 std::string currentTimeToString() {
   std::time_t t = std::time(nullptr);
   std::string currentTime;
@@ -71,6 +75,9 @@ std::string currentTimeToString() {
 
 //-------------------------------------------------------------------------------------------------
 
+/**
+ *  @brief  LogPrint class
+ */
 class LogPrinter {
 public:
   /**
@@ -184,6 +191,12 @@ int main(int argc, char* argv[]) {
   
   std::string verbosity(verbosityArg.getValue());
   Logger::Level level = Logger::logLevelFromString(verbosity);
+  
+  const std::string localVerbosity("info");
+  const std::string loggerName("online-logger:" + typeToString(dqm4hep::core::pid()));
+  Logger::createLogger(loggerName, {Logger::coloredConsole()});
+  Logger::setMainLogger(loggerName);
+  Logger::setLogLevel(Logger::logLevelFromString(localVerbosity));
 
   // install signal handlers
   signal(SIGINT,  int_key_signal_handler);

@@ -12,7 +12,6 @@ add_definitions( "-pedantic -Wunused-value -O2" )
 add_definitions("-Wno-long-long -Wreturn-type -Werror")
 
 #AUX_SOURCE_DIRECTORY( src SRC_FILES )
-<<<<<<< HEAD
 SET( SRC_FILES ${SRC_FILES} src/RemoteLogger.cc )
 SET( SRC_FILES ${SRC_FILES} src/OnlineManagerServer.cc )
 SET( SRC_FILES ${SRC_FILES} src/OnlineRoutes.cc )
@@ -24,16 +23,6 @@ SET( SRC_FILES ${SRC_FILES} src/AppEvent.cc )
 SET( SRC_FILES ${SRC_FILES} src/AppEventLoop.cc )
 SET( SRC_FILES ${SRC_FILES} src/Application.cc )
 SET( SRC_FILES ${SRC_FILES} src/EventCollector.cc )
-=======
-set( SRC_FILES ${SRC_FILES} src/OnlineRoutes.cc )
-set( SRC_FILES ${SRC_FILES} src/RunControl.cc )
-set( SRC_FILES ${SRC_FILES} src/RunControlServer.cc )
-set( SRC_FILES ${SRC_FILES} src/RunControlInterface.cc )
-set( SRC_FILES ${SRC_FILES} src/AppEvent.cc )
-set( SRC_FILES ${SRC_FILES} src/AppEventLoop.cc )
-set( SRC_FILES ${SRC_FILES} src/Application.cc )
-set( SRC_FILES ${SRC_FILES} src/EventCollector.cc )
->>>>>>> Tidy up CMakeLists.txt and added clang format and tidy to make rules
 
 if( BUILD_HTTP_RC )
   find_package( Mongoose REQUIRED )

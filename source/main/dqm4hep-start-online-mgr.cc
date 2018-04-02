@@ -49,11 +49,9 @@ std::shared_ptr<OnlineManagerServer> server;
 //-------------------------------------------------------------------------------------------------
 
 // key interrupt signal handling
-void int_key_signal_handler(int signal)
-{
+void int_key_signal_handler(int signal) {
   std::cout << std::endl;
-  dqm_info( "Caught CTRL+C. Stopping server...", signal );
-
+  dqm_info( "Caught CTRL+C. Stopping server..." );
   if(server) {
     server->stop();
   }
@@ -61,10 +59,7 @@ void int_key_signal_handler(int signal)
 
 //-------------------------------------------------------------------------------------------------
 
-int main(int argc, char* argv[])
-{
-  dqm4hep::core::screenSplash();
-
+int main(int argc, char* argv[]) {
   std::string cmdLineFooter = "Please report bug to <dqm4hep@gmail.com>";
   TCLAP::CmdLine *pCommandLine = new TCLAP::CmdLine(cmdLineFooter, ' ', DQMOnline_VERSION_STR);
 

@@ -279,46 +279,12 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
-    void Application::directSubscribe(const std::string &serviceName) {
-      auto findIter = m_serviceHandlerPtrMap.find(serviceName);
-      
-      if(m_serviceHandlerPtrMap.end() != findIter) {
-        dqm_error( "Application::directSubscribe(): couldn't subscribe twice to service '{0}'", serviceName );
-        throw core::StatusCodeException(core::STATUS_CODE_ALREADY_PRESENT);
-      }
-      
-      auto handler = std::make_shared<NetworkHandler>(m_eventLoop, serviceName);
-      m_serviceHandlerPtrMap.insert(NetworkHandlerPtrMap::value_type(serviceName, handler));
-      m_client.subscribe(serviceName, handler.get(), &Application::NetworkHandler::sendServiceContent);
-    }
-    
-    //-------------------------------------------------------------------------------------------------
-    
     net::Service *Application::createService(const std::string &name) {
       if(not m_server) {
         dqm_error( "Application::createService(): couldn't create service '{0}', server is not yet allocated", name );
         throw core::StatusCodeException(core::STATUS_CODE_NOT_INITIALIZED);
       }
       return m_server->createService(name);
-    }
-    
-    //-------------------------------------------------------------------------------------------------
-    
-    void Application::createRequestHandler(const std::string &requestName) {
-      if(not m_server) {
-        dqm_error( "Application::createRequestHandler(): couldn't create request handler '{0}', server is not yet allocated", requestName );
-        throw core::StatusCodeException(core::STATUS_CODE_NOT_INITIALIZED);
-      }
-      auto findIter = m_requestHandlerPtrMap.find(requestName);
-      
-      if(m_requestHandlerPtrMap.end() != findIter) {
-        dqm_error( "Application::createRequestHandler(): couldn't create twice request handler '{0}'", requestName );
-        throw core::StatusCodeException(core::STATUS_CODE_ALREADY_PRESENT);
-      }
-      
-      auto handler = std::make_shared<NetworkHandler>(m_eventLoop, requestName);
-      m_serviceHandlerPtrMap.insert(NetworkHandlerPtrMap::value_type(requestName, handler));
-      m_server->createRequestHandler(requestName, handler.get(), &Application::NetworkHandler::sendRequestEvent);
     }
     
     //-------------------------------------------------------------------------------------------------
@@ -339,26 +305,6 @@ namespace dqm4hep {
       auto handler = std::make_shared<NetworkHandler>(m_eventLoop, commandName, priority, maxNEvents);
       m_commandHandlerPtrMap.insert(NetworkHandlerPtrMap::value_type(commandName, handler));
       m_server->createCommandHandler(commandName, handler.get(), &Application::NetworkHandler::postCommandEvent);
-    }
-      
-    //-------------------------------------------------------------------------------------------------
-
-    void Application::createDirectCommand(const std::string &commandName) {
-      if(not m_server) {
-        dqm_error( "Application::createDirectCommand(): couldn't create command handler '{0}', server is not yet allocated", commandName );
-        throw core::StatusCodeException(core::STATUS_CODE_NOT_INITIALIZED);
-      }
-      
-      auto findIter = m_commandHandlerPtrMap.find(commandName);
-      
-      if(m_commandHandlerPtrMap.end() != findIter) {
-        dqm_error( "Application::createDirectCommand(): couldn't create command handler '{0}' twice", commandName );
-        throw core::StatusCodeException(core::STATUS_CODE_ALREADY_PRESENT);
-      }
-      
-      auto handler = std::make_shared<NetworkHandler>(m_eventLoop, commandName);
-      m_commandHandlerPtrMap.insert(NetworkHandlerPtrMap::value_type(commandName, handler));
-      m_server->createCommandHandler(commandName, handler.get(), &Application::NetworkHandler::sendCommandEvent);
     }
     
     //-------------------------------------------------------------------------------------------------
@@ -451,15 +397,17 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
     
     void Application::NetworkHandler::sendServiceContent(const net::Buffer &buffer) {
-      ServiceUpdateEvent *pEvent = new ServiceUpdateEvent(m_name, buffer.model());
-      m_eventLoop.sendEvent(pEvent);
+      m_eventLoop.processFunction([&](){
+        m_sendContentSignal.process(buffer);
+      });
     }
     
     //-------------------------------------------------------------------------------------------------
     
     void Application::NetworkHandler::sendRequestEvent(const net::Buffer &request, net::Buffer &response) {
-      RequestEvent *pEvent = new RequestEvent(m_name, request.model(), response);
-      m_eventLoop.sendEvent(pEvent);
+      m_eventLoop.processFunction([&](){
+        m_sendRequestSignal.process(request, response);
+      });
     }
     
     //-------------------------------------------------------------------------------------------------
@@ -494,8 +442,9 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
 
     void Application::NetworkHandler::sendCommandEvent(const net::Buffer &buffer) {
-      CommandEvent *pEvent = new CommandEvent(m_name, buffer.model());
-      m_eventLoop.sendEvent(pEvent);
+      m_eventLoop.processFunction([&](){
+        m_sendContentSignal.process(buffer);
+      });
     }
     
   }

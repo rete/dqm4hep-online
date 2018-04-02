@@ -64,10 +64,10 @@ namespace dqm4hep {
       void onStop() override;
 
     private:
-      void handleRegistration(RequestEvent *event);
+      void handleRegistration(const net::Buffer &request, net::Buffer &response);
       void handleClientExit(ClientExitEvent *event);
-      void handleCollectEvent(CommandEvent *event);
-      void handleClientUnregistration(CommandEvent *event);
+      void handleCollectEvent(const net::Buffer &buffer);
+      void handleClientUnregistration(const net::Buffer &buffer);
       void sendStatsTimer10();
       void sendStatsTimer60();
       void printSourceMap();

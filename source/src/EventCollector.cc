@@ -28,6 +28,7 @@
 #include "dqm4hep/EventCollector.h"
 #include "DQMOnlineConfig.h"
 #include "dqm4hep/Logging.h"
+#include "dqm4hep/OnlineRoutes.h"
 
 namespace dqm4hep {
 
@@ -68,31 +69,43 @@ namespace dqm4hep {
 
       std::string verbosity(verbosityArg.getValue());
       std::string collectorName(collectorNameArg.getValue());
-      this->setType("evtcol");
-      this->setName(collectorName);
-      this->setLogLevel(core::Logger::logLevelFromString(verbosity));
+      setType(OnlineRoutes::EventCollector::applicationType());
+      setName(collectorName);
+      setLogLevel(core::Logger::logLevelFromString(verbosity));
     }
     
     //-------------------------------------------------------------------------------------------------
     
     void EventCollector::onInit() {
       // create network services
-      this->createRequestHandler("/dqm4hep/app/evtcol/" + this->name() + "/register");
-      this->createDirectCommand("/dqm4hep/app/evtcol/" + this->name() + "/unregister");
-      this->createDirectCommand("/dqm4hep/app/evtcol/" + this->name() + "/collect");
+      createRequestHandler(
+        OnlineRoutes::EventCollector::registerSource(name()), 
+        this, 
+        &EventCollector::handleRegistration
+      );
+      createDirectCommand(
+        OnlineRoutes::EventCollector::unregisterSource(name()), 
+        this, 
+        &EventCollector::handleClientUnregistration
+      );
+      createDirectCommand(
+        OnlineRoutes::EventCollector::collectEvent(name()), 
+        this, 
+        &EventCollector::handleCollectEvent
+      );
       
       // create statistics entries
-      this->createStatsEntry("NSources", "", "The current number of registered sources");
-      this->createStatsEntry("NEvents_60sec", "1/min", "The number of collected events within the last minute");
-      this->createStatsEntry("NEvents_10sec", "1/10 sec", "The number of collected events within the last 10 secondes");
-      this->createStatsEntry("NBytes_60sec", "bytes", "The total number of collected bytes within the last minute");
-      this->createStatsEntry("NBytes_10sec", "bytes", "The total number of collected bytes within the last 10 secondes");
-      this->createStatsEntry("NMeanBytes_60sec", "bytes/min", "The mean number of collected bytes within the last minute");
-      this->createStatsEntry("NMeanBytes_10sec", "bytes/10 sec", "The mean number of collected bytes within the last 10 secondes");
+      createStatsEntry("NSources", "", "The current number of registered sources");
+      createStatsEntry("NEvents_60sec", "1/min", "The number of collected events within the last minute");
+      createStatsEntry("NEvents_10sec", "1/10 sec", "The number of collected events within the last 10 secondes");
+      createStatsEntry("NBytes_60sec", "bytes", "The total number of collected bytes within the last minute");
+      createStatsEntry("NBytes_10sec", "bytes", "The total number of collected bytes within the last 10 secondes");
+      createStatsEntry("NMeanBytes_60sec", "bytes/min", "The mean number of collected bytes within the last minute");
+      createStatsEntry("NMeanBytes_10sec", "bytes/10 sec", "The mean number of collected bytes within the last 10 secondes");
       
       // app stats timers
-      this->createTimer("CollectorStats10Secs", 10, false, this, &EventCollector::sendStatsTimer10);
-      this->createTimer("CollectorStats60Secs", 60, false, this, &EventCollector::sendStatsTimer60);
+      createTimer("CollectorStats10Secs", 10, false, this, &EventCollector::sendStatsTimer10);
+      createTimer("CollectorStats60Secs", 60, false, this, &EventCollector::sendStatsTimer60);
       m_lastStatCall10 = core::now();
       m_lastStatCall60 = core::now();
     }
@@ -100,24 +113,9 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
     
     void EventCollector::onEvent(AppEvent *pAppEvent) {
-      if(pAppEvent->type() == AppEvent::REQUEST_HANDLING) {
-        RequestEvent *request = (RequestEvent *) pAppEvent;
-        if(request->requestName() == "/dqm4hep/app/evtcol/" + this->name() + "/register") {
-          this->handleRegistration(request);
-        }
-      }
-      else if(pAppEvent->type() == AppEvent::CLIENT_EXIT) {
+      if(pAppEvent->type() == AppEvent::CLIENT_EXIT) {
         ClientExitEvent *pClientExitEvent = (ClientExitEvent *) pAppEvent;
         this->handleClientExit(pClientExitEvent);
-      }
-      if(pAppEvent->type() == AppEvent::COMMAND_HANDLING) {
-        CommandEvent *command = (CommandEvent *) pAppEvent;
-        if(command->commandName() == "/dqm4hep/app/evtcol/" + this->name() + "/collect") {
-          this->handleCollectEvent(command);
-        }
-        else if(command->commandName() == "/dqm4hep/app/evtcol/" + this->name() + "/unregister") {
-          this->handleClientUnregistration(command);
-        }
       }
     }
     
@@ -133,10 +131,10 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
-    void EventCollector::handleRegistration(RequestEvent *request) {
+    void EventCollector::handleRegistration(const net::Buffer &request, net::Buffer &response) {
       core::json registrationDetails({});
-      if(0 != request->request().size()) {
-        registrationDetails = core::json::parse(request->request().begin(), request->request().end());   
+      if(0 != request.size()) {
+        registrationDetails = core::json::parse(request.begin(), request.end());   
       }
       auto clientSourceName = registrationDetails.value<std::string>("source", "");
       auto clientId = this->serverClientId();  
@@ -185,9 +183,9 @@ namespace dqm4hep {
         sendStat("NSources", m_sourceInfoMap.size());
       }
       
-      auto model = request->response().createModel<std::string>();
-      request->response().setModel(model);
+      auto model = response.createModel<std::string>();
       model->copy(clientResponseValue.dump());
+      response.setModel(model);
     }
     
     //-------------------------------------------------------------------------------------------------
@@ -207,31 +205,30 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
-    void EventCollector::handleCollectEvent(CommandEvent *command) {
-      const int clientId(this->serverClientId());
+    void EventCollector::handleCollectEvent(const net::Buffer &buffer) {
+      const int clientId(serverClientId());
       
       auto findIter = std::find_if(m_sourceInfoMap.begin(), m_sourceInfoMap.end(), [&clientId](const SourceInfoMap::value_type &iter){
         return (iter.second.m_clientId == clientId);
       });
       
-      if(findIter != m_sourceInfoMap.end()) {
-        auto &bufferCollect = command->buffer();            
-        std::string copiedBuffer(bufferCollect.begin(), bufferCollect.size());
+      if(findIter != m_sourceInfoMap.end()) {          
+        std::string copiedBuffer(buffer.begin(), buffer.size());
         auto newModel = findIter->second.m_buffer.createModel<std::string>();
         findIter->second.m_buffer.setModel(newModel);
         newModel->move(std::move(copiedBuffer));
         
         m_nCollectedEvents10++;
         m_nCollectedEvents60++;
-        m_nCollectedBytes10 += bufferCollect.size();
-        m_nCollectedBytes60 += bufferCollect.size();
+        m_nCollectedBytes10 += buffer.size();
+        m_nCollectedBytes60 += buffer.size();
       }
     }
     
     //-------------------------------------------------------------------------------------------------
     
-    void EventCollector::handleClientUnregistration(CommandEvent *event) {
-      const int clientId(this->serverClientId());
+    void EventCollector::handleClientUnregistration(const net::Buffer &/*buffer*/) {
+      const int clientId(serverClientId());
       auto findIter = std::find_if(m_sourceInfoMap.begin(), m_sourceInfoMap.end(), [&clientId](const SourceInfoMap::value_type &iter){
         return (iter.second.m_clientId == clientId);
       });

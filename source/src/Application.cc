@@ -28,6 +28,7 @@
 // -- dqm4hep headers
 #include "dqm4hep/Application.h"
 #include "dqm4hep/OnlineRoutes.h"
+#include "dqm4hep/RemoteLogger.h"
 #include "dqm4hep/Logging.h"
 
 namespace dqm4hep {
@@ -45,6 +46,7 @@ namespace dqm4hep {
         dqm_error( "Application::setType(): Couldn't set app type, app is already initialized !" );
         throw core::StatusCodeException(core::STATUS_CODE_NOT_ALLOWED);
       }
+      dqm_debug( "Application set type to '{0}'", type );
       m_type = type;
     }
     
@@ -61,6 +63,7 @@ namespace dqm4hep {
         dqm_error( "Application::setName(): Couldn't set app name, app is already initialized !" );
         throw core::StatusCodeException(core::STATUS_CODE_NOT_ALLOWED);
       }
+      dqm_debug( "Application set name to '{0}'", name );
       m_name = name;
     }
     
@@ -74,9 +77,25 @@ namespace dqm4hep {
     
     void Application::setState(const std::string &state) {
       m_state = state;
+      dqm_debug( "Changing app state to '{0}'", state );
       
       if(m_pAppStateService && m_server && m_server->isRunning())
         m_pAppStateService->send(m_state);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    core::Logger::Level Application::logLevel() const {
+      return m_logLevel;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+
+    void Application::setLogLevel(core::Logger::Level lvl) {
+      m_logLevel = lvl;
+      if(nullptr != m_logger) {
+        m_logger->set_level(m_logLevel);
+      }
     }
     
     //-------------------------------------------------------------------------------------------------
@@ -95,6 +114,8 @@ namespace dqm4hep {
         {"description", description},
         {"unit", unit}
       };
+      
+      dqm_debug( "Creating stat entry '{0}' (unit {1}): {2}", name, unit, description );
     }
   
     //-------------------------------------------------------------------------------------------------
@@ -112,6 +133,7 @@ namespace dqm4hep {
       object["appType"] = this->type();
       object["appName"] = this->name();
       object["time"] = core::TimePoint::clock::to_time_t(core::now());
+      dqm_debug( "Sending app stat : \n'{0}'", object.dump() );
       m_client.sendCommand(OnlineRoutes::OnlineManager::appStats(), object.dump());
     }
 
@@ -145,21 +167,36 @@ namespace dqm4hep {
         dqm_error( "Application::init(): failed to parse cmd line !" );
         throw core::StatusCodeException(core::STATUS_CODE_FAILURE);
       }
-      m_server = std::make_shared<net::Server>(OnlineRoutes::Application::serverName(this->type(), this->name()));
-      m_pAppStateService = m_server->createService(OnlineRoutes::Application::state());
       
+      // configure logger
+      m_logger = core::Logger::createLogger(this->type() + ":" + this->name(), {
+        core::Logger::coloredConsole(),
+        RemoteLogger::make_shared()
+      });
+      core::Logger::setMainLogger(m_logger->name());
+      m_logger->set_level(m_logLevel);
+        
+      // configure server
+      dqm_debug( "Creating server ..." );
+      m_server = std::make_shared<net::Server>(OnlineRoutes::Application::serverName(this->type(), this->name()));
+      m_pAppStateService = m_server->createService(OnlineRoutes::Application::state(this->type(), this->name()));
+
       if(m_statsEnabled) {
+        dqm_debug( "Creating internal app stats ..." );
         createInternalStats();
       }
       m_server->onClientExit().connect(this, &Application::sendClientExitEvent);
   
       try {
+        dqm_info( "User init ..." );
         this->onInit();        
       }
       catch(...) {
         dqm_error( "Application::init(): failed to initialize the app !" );
         throw core::StatusCodeException(core::STATUS_CODE_FAILURE);
       }
+      
+      dqm_info( "Application successfully initialized !" );
       m_initialized = true;
     }
     
@@ -172,6 +209,7 @@ namespace dqm4hep {
       this->setState("Running");
       
       try {
+        dqm_info( "Application on start ..." );
         this->onStart();
       }
       catch(...) {
@@ -184,10 +222,15 @@ namespace dqm4hep {
       try {
         if(m_statsEnabled) {
           // send statistics every 5 seconds
+          dqm_info( "Statistics enabled. Creating timer (5 secs) ..." );
           m_eventLoop.createTimer("AppStats", 5, false, this, &Application::sendAppStats);
         }
         m_eventLoop.connectOnEvent(this, &Application::onEvent);
+        dqm_info( "Starting event lopp ..." );
         returnCode = m_eventLoop.exec();
+        dqm_info( "Exiting event lopp ..." );
+        m_eventLoop.disconnectOnEvent(this);
+        m_server->onClientExit().disconnectAll();
         this->onStop();
       }
       catch(...) {

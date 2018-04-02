@@ -41,7 +41,7 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
-    std::shared_ptr<RemoteLogger> RemoteLogger::make_shared() {
+    core::Logger::AppenderPtr RemoteLogger::make_shared() {
       return std::make_shared<RemoteLogger>();
     }
         

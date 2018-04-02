@@ -245,7 +245,8 @@ namespace dqm4hep {
        *  
        *  @param  serviceName the service name to subscribe
        */
-      void directSubscribe(const std::string &serviceName);
+      template <typename Controller>
+      void directSubscribe(const std::string &serviceName, Controller *controller, void (Controller::*function)(const net::Buffer &));
       
       /// Server interface
       /**
@@ -267,7 +268,8 @@ namespace dqm4hep {
        *  
        *  @param requestName the request name to handle
        */
-      void createRequestHandler(const std::string &requestName);
+      template <typename Controller>
+      void createRequestHandler(const std::string &requestName, Controller *controller, void (Controller::*function)(const net::Buffer &, net::Buffer &));
       
       /**
        *  @brief  Create a command handler. On command reception, the content is posted
@@ -296,7 +298,8 @@ namespace dqm4hep {
        *  
        *  @param commandName the command name to subscribe
        */
-      void createDirectCommand(const std::string &commandName);
+      template <typename Controller>
+      void createDirectCommand(const std::string &commandName, Controller *controller, void (Controller::*function)(const net::Buffer &));
       
       int serverClientId() const;
       
@@ -333,6 +336,26 @@ namespace dqm4hep {
          *  @param priority the event priority, if the event is posted
          */
         NetworkHandler(AppEventLoop &eventLoop, const std::string &name, int priority = 50, int maxNEvents = std::numeric_limits<int>::max());
+        
+        /**
+         *  @brief  Constructor
+         *  
+         *  @param eventLoop the application event loop
+         *  @param name the name of service/command/request to handle
+         *  @param priority the event priority, if the event is posted
+         */
+        template <typename Controller>
+        NetworkHandler(AppEventLoop &eventLoop, const std::string &name, Controller *controller, void (Controller::*function)(const net::Buffer &));
+        
+        /**
+         *  @brief  Constructor
+         *  
+         *  @param eventLoop the application event loop
+         *  @param name the name of service/command/request to handle
+         *  @param priority the event priority, if the event is posted
+         */
+        template <typename Controller>
+        NetworkHandler(AppEventLoop &eventLoop, const std::string &name, Controller *controller, void (Controller::*function)(const net::Buffer &, net::Buffer &));
         
         /**
          *  @brief  Post the service content in the event loop. The received buffer
@@ -381,10 +404,15 @@ namespace dqm4hep {
         void sendCommandEvent(const net::Buffer &buffer);
         
       private:
+        using ContentSignal = core::Signal<const net::Buffer&>;
+        using RequestSignal = core::Signal<const net::Buffer&, net::Buffer&>;
+        
         AppEventLoop           &m_eventLoop;
         const std::string       m_name;
         const int               m_priority;
         const int               m_maxNEvents;
+        ContentSignal           m_sendContentSignal;
+        RequestSignal           m_sendRequestSignal;
       };
       
       typedef std::shared_ptr<NetworkHandler> NetworkHandlerPtr;
@@ -433,6 +461,85 @@ namespace dqm4hep {
     inline void Application::createTimer(const std::string &name, unsigned int nSeconds, bool singleShot,
                      Controller *controller, void (Controller::*function)()) {
       m_eventLoop.createTimer(name, nSeconds, singleShot, controller, function);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    template <typename Controller>
+    inline Application::NetworkHandler::NetworkHandler(AppEventLoop &eventLoop, const std::string &name, Controller *controller, void (Controller::*function)(const net::Buffer &buffer)) :
+      m_eventLoop(eventLoop),
+      m_name(name),
+      m_priority(0),
+      m_maxNEvents(0) {
+      m_sendContentSignal.connect(controller, function);
+    }
+
+    //-------------------------------------------------------------------------------------------------
+
+    template <typename Controller>
+    inline Application::NetworkHandler::NetworkHandler(AppEventLoop &eventLoop, const std::string &name, Controller *controller, void (Controller::*function)(const net::Buffer &buffer, net::Buffer &response)) :
+      m_eventLoop(eventLoop),
+      m_name(name),
+      m_priority(0),
+      m_maxNEvents(0) {
+      m_sendRequestSignal.connect(controller, function);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    template <typename Controller>
+    inline void Application::directSubscribe(const std::string &serviceName, Controller *controller, void (Controller::*function)(const net::Buffer &)) {
+      auto findIter = m_serviceHandlerPtrMap.find(serviceName);
+      
+      if(m_serviceHandlerPtrMap.end() != findIter) {
+        dqm_error( "Application::directSubscribe(): couldn't subscribe twice to service '{0}'", serviceName );
+        throw core::StatusCodeException(core::STATUS_CODE_ALREADY_PRESENT);
+      }
+      
+      auto handler = std::make_shared<NetworkHandler>(m_eventLoop, serviceName, controller, function);
+      m_serviceHandlerPtrMap.insert(NetworkHandlerPtrMap::value_type(serviceName, handler));
+      m_client.subscribe(serviceName, handler.get(), &Application::NetworkHandler::sendServiceContent);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    template <typename Controller>
+    inline void Application::createRequestHandler(const std::string &requestName, Controller *controller, void (Controller::*function)(const net::Buffer &, net::Buffer &)) {
+      if(not m_server) {
+        dqm_error( "Application::createRequestHandler(): couldn't create request handler '{0}', server is not yet allocated", requestName );
+        throw core::StatusCodeException(core::STATUS_CODE_NOT_INITIALIZED);
+      }
+      auto findIter = m_requestHandlerPtrMap.find(requestName);
+      
+      if(m_requestHandlerPtrMap.end() != findIter) {
+        dqm_error( "Application::createRequestHandler(): couldn't create twice request handler '{0}'", requestName );
+        throw core::StatusCodeException(core::STATUS_CODE_ALREADY_PRESENT);
+      }
+      
+      auto handler = std::make_shared<NetworkHandler>(m_eventLoop, requestName, controller, function);
+      m_serviceHandlerPtrMap.insert(NetworkHandlerPtrMap::value_type(requestName, handler));
+      m_server->createRequestHandler(requestName, handler.get(), &Application::NetworkHandler::sendRequestEvent);      
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    template <typename Controller>
+    inline void Application::createDirectCommand(const std::string &commandName, Controller *controller, void (Controller::*function)(const net::Buffer &)) {
+      if(not m_server) {
+        dqm_error( "Application::createDirectCommand(): couldn't create command handler '{0}', server is not yet allocated", commandName );
+        throw core::StatusCodeException(core::STATUS_CODE_NOT_INITIALIZED);
+      }
+      
+      auto findIter = m_commandHandlerPtrMap.find(commandName);
+      
+      if(m_commandHandlerPtrMap.end() != findIter) {
+        dqm_error( "Application::createDirectCommand(): couldn't create command handler '{0}' twice", commandName );
+        throw core::StatusCodeException(core::STATUS_CODE_ALREADY_PRESENT);
+      }
+      
+      auto handler = std::make_shared<NetworkHandler>(m_eventLoop, commandName, controller, function);
+      m_commandHandlerPtrMap.insert(NetworkHandlerPtrMap::value_type(commandName, handler));
+      m_server->createCommandHandler(commandName, handler.get(), &Application::NetworkHandler::sendCommandEvent);
     }
     
   }

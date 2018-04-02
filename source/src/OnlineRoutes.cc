@@ -51,6 +51,19 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
     //-------------------------------------------------------------------------------------------------
     
+    std::string OnlineRoutes::Application::serverName(const std::string &type, const std::string &name) {
+      return std::string( "/dqm4hep/app/" + type + "/" + name );
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    std::string OnlineRoutes::Application::state(const std::string &type, const std::string &name) {
+      return serverName(type, name) + "/state";
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
+    
     const std::string OnlineRoutes::OnlineManager::serverName() {
       return std::string("/dqm4hep/onlineMgr");
     }

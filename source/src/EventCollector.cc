@@ -91,8 +91,8 @@ namespace dqm4hep {
       this->createStatsEntry("NMeanBytes_10sec", "bytes/10 sec", "The mean number of collected bytes within the last 10 secondes");
       
       // app stats timers
-      this->createTimer("CollectorStats10Secs", 10, true, this, &EventCollector::sendStatsTimer10);
-      this->createTimer("CollectorStats60Secs", 60, true, this, &EventCollector::sendStatsTimer60);
+      this->createTimer("CollectorStats10Secs", 10, false, this, &EventCollector::sendStatsTimer10);
+      this->createTimer("CollectorStats60Secs", 60, false, this, &EventCollector::sendStatsTimer60);
       m_lastStatCall10 = core::now();
       m_lastStatCall60 = core::now();
     }
@@ -220,6 +220,11 @@ namespace dqm4hep {
         auto newModel = findIter->second.m_buffer.createModel<std::string>();
         findIter->second.m_buffer.setModel(newModel);
         newModel->move(std::move(copiedBuffer));
+        
+        m_nCollectedEvents10++;
+        m_nCollectedEvents60++;
+        m_nCollectedBytes10 += bufferCollect.size();
+        m_nCollectedBytes60 += bufferCollect.size();
       }
     }
     
@@ -234,17 +239,18 @@ namespace dqm4hep {
       if(findIter != m_sourceInfoMap.end()) {
         dqm_info( "Removing event source '{0}' from source list !", findIter->second.m_name );
         m_sourceInfoMap.erase(findIter);
+        sendStat("NSources", m_sourceInfoMap.size());
       }
     }
     
     //-------------------------------------------------------------------------------------------------
     
     void EventCollector::sendStatsTimer10() {
-      auto timeDifference = (core::now()-m_lastStatCall10).count();
+      auto timeDifference = std::chrono::duration_cast<std::chrono::milliseconds>(core::now()-m_lastStatCall10).count();
       // send stats
       sendStat("NEvents_10sec", m_nCollectedEvents10);
       sendStat("NBytes_10sec", m_nCollectedBytes10);
-      sendStat("NMeanBytes_10sec", m_nCollectedBytes10 / (timeDifference*1.));
+      sendStat("NMeanBytes_10sec", m_nCollectedBytes10 / (timeDifference/1000.));
       // reset counters
       m_nCollectedEvents10 = 0;
       m_nCollectedBytes10 = 0;
@@ -254,11 +260,11 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
     
     void EventCollector::sendStatsTimer60() {
-      auto timeDifference = (core::now()-m_lastStatCall60).count();
+      auto timeDifference = std::chrono::duration_cast<std::chrono::milliseconds>(core::now()-m_lastStatCall60).count();
       // send stats
       sendStat("NEvents_60sec", m_nCollectedEvents60);
       sendStat("NBytes_60sec", m_nCollectedBytes60);
-      sendStat("NMeanBytes_60sec", m_nCollectedBytes60 / (timeDifference*1.));
+      sendStat("NMeanBytes_60sec", m_nCollectedBytes60 / (timeDifference/1000.));
       // reset counters
       m_nCollectedEvents60 = 0;
       m_nCollectedBytes60 = 0;

@@ -30,67 +30,63 @@
 #include <dqm4hep/Logging.h>
 #include <dqm4hep/PluginManager.h>
 #include <dqm4hep/Server.h>
+#include <dqm4hep/OnlineRoutes.h>
 
 namespace dqm4hep {
 
   namespace online {
 
-    EventSourcePtr EventSource::make_shared(const std::string &sourceName)
-    {
+    EventSourcePtr EventSource::make_shared(const std::string &sourceName) {
       return std::shared_ptr<EventSource>(new EventSource(sourceName));
     }
 
     //-------------------------------------------------------------------------------------------------
 
     EventSource::EventSource(const std::string &sourceName) :
-        m_sourceName(sourceName)
-    {
-      /* nop */
+        m_sourceName(sourceName) {
     }
     
     //-------------------------------------------------------------------------------------------------
     
-    EventSource::~EventSource()
-    {
-      for(auto colIter : m_collectorInfos)
+    EventSource::~EventSource() {
+      for(auto colIter : m_collectorInfos) {
         this->unregisterMe(colIter.first);
+      }
     }
 
     //-------------------------------------------------------------------------------------------------
 
-    const std::string &EventSource::sourceName() const
-    {
+    const std::string &EventSource::sourceName() const {
       return m_sourceName;
     }
     
     //-------------------------------------------------------------------------------------------------
 
-    void EventSource::setStreamerName(const std::string &name)
-    {
-      if(m_started)
+    void EventSource::setStreamerName(const std::string &name) {
+      if(m_started) {
         throw core::StatusCodeException(core::STATUS_CODE_NOT_ALLOWED);
-        
+      }        
       m_streamerName = name;
     }
 
     //-------------------------------------------------------------------------------------------------
 
-    const std::string &EventSource::streamerName() const
-    {
+    const std::string &EventSource::streamerName() const {
       return m_streamerName;
     }
     
     //-------------------------------------------------------------------------------------------------
 
-    void EventSource::addCollector(const std::string &name)
-    {
-      if(m_started)
+    void EventSource::addCollector(const std::string &name) {
+      if(m_started) {
         throw core::StatusCodeException(core::STATUS_CODE_NOT_ALLOWED);
+      }
       
       auto findIter = m_collectorInfos.find(name);
       
-      if(m_collectorInfos.end() != findIter)
+      if(m_collectorInfos.end() != findIter) {
         throw core::StatusCodeException(core::STATUS_CODE_ALREADY_PRESENT);
+      }
       
       CollectorInfo info;
       info.m_registered = false;
@@ -99,21 +95,19 @@ namespace dqm4hep {
 
     //-------------------------------------------------------------------------------------------------
     
-    void EventSource::start()
-    {
-      if(m_started)
+    void EventSource::start() {
+      if(m_started) {
         throw core::StatusCodeException(core::STATUS_CODE_ALREADY_INITIALIZED);
+      }
       
       m_eventStreamer = core::PluginManager::instance()->create<core::EventStreamer>(m_streamerName);
       
-      if(!m_eventStreamer)
-      {
+      if(not m_eventStreamer) {
         dqm_error( "EventSource::start(): Event streamer '{0}' not found in available streamers. Couldn't initialize!", m_streamerName );
         throw core::StatusCodeException(core::STATUS_CODE_NOT_FOUND);        
       }
       
-      if(m_collectorInfos.empty())
-      {
+      if(m_collectorInfos.empty()) {
         dqm_error( "EventSource::start(): Event source '{0}' has no collector to send event. Couldn't initialize!", m_sourceName );
         throw core::StatusCodeException(core::STATUS_CODE_NOT_INITIALIZED);
       }
@@ -123,8 +117,7 @@ namespace dqm4hep {
       core::json sourceInfo;
       this->getSourceInfo(sourceInfo);
       
-      for(auto colIter : m_collectorInfos)
-      {
+      for(auto colIter : m_collectorInfos) {
         bool registered = this->registerMe(colIter.first, sourceInfo);
         colIter.second.m_registered = registered;
       }
@@ -134,8 +127,7 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
-    void EventSource::sendEvent(const core::EventPtr &event)
-    {
+    void EventSource::sendEvent(const core::EventPtr &event) {
       core::StringVector collectors;
 
       for(auto iter : m_collectorInfos)
@@ -146,10 +138,8 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
-    void EventSource::sendEvent(const std::string &collector, const core::EventPtr &event)
-    {
-      if(m_collectorInfos.end() == m_collectorInfos.find(collector))
-      {
+    void EventSource::sendEvent(const std::string &collector, const core::EventPtr &event) {
+      if(m_collectorInfos.end() == m_collectorInfos.find(collector)) {
         dqm_error( "EventSource::sendEvent(col,evt): collector '{0}' not registered !", collector );
         throw core::StatusCodeException(core::STATUS_CODE_NOT_FOUND);
       }
@@ -159,13 +149,14 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
-    void EventSource::sendEvent(const core::StringVector &collectors, const core::EventPtr &event)
-    {
-      if(!m_started)
+    void EventSource::sendEvent(const core::StringVector &collectors, const core::EventPtr &event) {
+      if(!m_started) {
         throw core::StatusCodeException(core::STATUS_CODE_NOT_INITIALIZED);
+      }
         
-      if(nullptr == event)
+      if(nullptr == event) {
         throw core::StatusCodeException(core::STATUS_CODE_INVALID_PTR);
+      }
       
       (void)m_bufferDevice->reset();
       
@@ -178,19 +169,17 @@ namespace dqm4hep {
       model->handle(m_bufferDevice->getBuffer(), m_bufferDevice->getPosition());
       
       // send serialized event to all collectors 
-      for(auto collector : collectors)
-      {
+      for(auto collector : collectors) {
         auto iter = m_collectorInfos.find(collector);
         
-        if(m_collectorInfos.end() == iter)
-        {
+        if(m_collectorInfos.end() == iter) {
           dqm_error( "EventSource::sendEvent(): Collector '{0}' not found... Something is wrong !!!", collector );
           throw core::StatusCodeException(core::STATUS_CODE_NOT_FOUND);
         }
         
         // Is the event collector server actually running ?
-        if(!net::Server::isServerRunning("/dqm4hep/app/evtcol/" + iter->first))
-        {
+        const std::string serverName(OnlineRoutes::Application::serverName(OnlineRoutes::EventCollector::applicationType(), iter->first));
+        if(!net::Server::isServerRunning(serverName)) {
           // in case the server was stopped, we will need to send 
           // back the source registration on wake up
           iter->second.m_registered = false;
@@ -198,40 +187,35 @@ namespace dqm4hep {
         }
         
         // if not yet registered to the collector, do it
-        if(!iter->second.m_registered)
-        {
+        if(!iter->second.m_registered) {
           // get it once
-          if(sourceInfo.empty())
+          if(sourceInfo.empty()) {
             this->getSourceInfo(sourceInfo);
-            
+          }            
           iter->second.m_registered = this->registerMe(iter->first, sourceInfo);
         }
         
-        if(!iter->second.m_registered)
-        {
+        if(!iter->second.m_registered) {
           dqm_warning( "EventSource::sendEvent(): Source '{0}' not registered yet to collector '{1}'. Skipping ...", m_sourceName, collector );
           continue;
         }
         
-        std::string collectCommand = "/dqm4hep/app/evtcol/" + collector + "/collect";
-        m_client.sendCommand(collectCommand, collectBuffer);
+        m_client.sendCommand(OnlineRoutes::EventCollector::collectEvent(collector), collectBuffer);
       }  
     }
     
     //-------------------------------------------------------------------------------------------------
     
-    core::EventPtr EventSource::createEvent() const
-    {
-      if(!m_started)
+    core::EventPtr EventSource::createEvent() const {
+      if(!m_started) {
         throw core::StatusCodeException(core::STATUS_CODE_NOT_INITIALIZED);
-      
+      }      
       return m_eventStreamer->createEvent();
     }
 
     //-------------------------------------------------------------------------------------------------
 
-    void EventSource::getSourceInfo(core::json &info)
-    {
+    void EventSource::getSourceInfo(core::json &info) {
       // host info
       core::StringMap hostInfo;
       core::fillHostInfo(hostInfo);
@@ -249,9 +233,8 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
-    bool EventSource::registerMe(const std::string &collector, const core::json &info)
-    {
-      std::string requestName = "/dqm4hep/app/evtcol/" + collector + "/register";      
+    bool EventSource::registerMe(const std::string &collector, const core::json &info) {
+      std::string requestName = OnlineRoutes::EventCollector::registerSource(collector);
       bool returnValue(false);
       net::Buffer requestBuffer;
       auto model = requestBuffer.createModel<std::string>();
@@ -266,34 +249,29 @@ namespace dqm4hep {
         }
         const bool registered(response.value<bool>("registered", false));
         
-        if(!registered)
-        {
+        if(not registered) {
           const std::string message(response.value<std::string>("message", "The event collector is maybe not available or is down !"));
           dqm_warning( "EventSource::registerMe(): Couldn't register source to collector '{0}': {1}", collector, message );
           returnValue = false;
         }
-        else
-        {
+        else {
           dqm_info( "Event source registered to event collector '{0}' !", collector );
           returnValue = true;
         }
       });
       
-      if(returnValue)
-      {
+      if(returnValue) {
         dqm_info( "Will notify server on exit" );
-        m_client.notifyServerOnExit("/dqm4hep/app/evtcol/" + collector);        
-      }
-
-      
+        const std::string serverName(OnlineRoutes::Application::serverName(OnlineRoutes::EventCollector::applicationType(), collector));
+        m_client.notifyServerOnExit(serverName);        
+      }      
       return returnValue;
     }
     
     //-------------------------------------------------------------------------------------------------
     
-    void EventSource::unregisterMe(const std::string &collector)
-    {
-      std::string commandName = "/dqm4hep/app/evtcol/" + collector + "/unregister";
+    void EventSource::unregisterMe(const std::string &collector) {
+      std::string commandName = OnlineRoutes::EventCollector::unregisterSource(collector);
       m_client.sendCommand(commandName, std::string(""));
     }
 

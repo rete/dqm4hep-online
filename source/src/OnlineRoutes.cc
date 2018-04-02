@@ -64,6 +64,31 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
     //-------------------------------------------------------------------------------------------------
     
+    std::string OnlineRoutes::EventCollector::applicationType() {
+      return "evtcol";
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    std::string OnlineRoutes::EventCollector::registerSource(const std::string &collector) {
+      return std::string(OnlineRoutes::Application::serverName(applicationType(), collector) + "/register");
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    std::string OnlineRoutes::EventCollector::unregisterSource(const std::string &collector) {
+      return std::string(OnlineRoutes::Application::serverName(applicationType(), collector) + "/unregister");
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    std::string OnlineRoutes::EventCollector::collectEvent(const std::string &collector) {
+      return std::string(OnlineRoutes::Application::serverName(applicationType(), collector) + "/collect");
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
+    
     const std::string OnlineRoutes::OnlineManager::serverName() {
       return std::string("/dqm4hep/onlineMgr");
     }

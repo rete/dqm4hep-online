@@ -76,8 +76,10 @@ public:
   /**
    *  @brief  Constructor
    */
-  LogPrinter(Logger::Level level) :
-    m_logLevel(level) {
+  LogPrinter(Logger::Level level, const StringVector &loggers, const StringVector &hosts) :
+    m_logLevel(level),
+    m_selectedLoggers(loggers),
+    m_selectedHosts(hosts) {
   }
   
   /**
@@ -86,6 +88,7 @@ public:
    *  @param  buffer the json buffer containing the log message
    */
   void printLog(const Buffer &buffer) {
+    // read message from buffer
     json logMessage;
     try {
       logMessage = json::parse(buffer.begin(), buffer.end());
@@ -94,12 +97,30 @@ public:
       dqm_warning( "LogPrinter::printLog: received unexpected log message (json parse error)" );
       return;
     }
+    
+    // extract metadata
     std::string loggerName = logMessage.value<std::string>("logger", "");
     Logger::Level logLevel = static_cast<Logger::Level>(logMessage.value<int>("level", 0));
     std::string logLevelStr = Logger::logLevelToString(logLevel);
     std::string message = logMessage.value<std::string>("message", "");
     std::string host = logMessage.value<std::string>("host", "");
     int pid = logMessage.value<int>("pid", 0);
+    
+    // apply filters: logger and host names
+    if(not m_selectedLoggers.empty()) {
+      auto findIter = std::find(m_selectedLoggers.begin(), m_selectedLoggers.end(), loggerName);
+      if(m_selectedLoggers.end() == findIter) {
+        return;
+      }
+    }
+    
+    if(not m_selectedHosts.empty()) {
+      auto findIter = std::find(m_selectedHosts.begin(), m_selectedHosts.end(), host);
+      if(m_selectedHosts.end() == findIter) {
+        return;
+      }
+    }
+    
     // get the logger or create a new one
     Logger::LoggerPtr logger = Logger::logger( loggerName );
     if(not logger) {
@@ -107,6 +128,8 @@ public:
       logger->set_level(m_logLevel);
       logger->set_pattern("%v");
     }
+    
+    // log message
     dqm_logger_log(logger, logLevel, 
       "[{0} on {1} ({2})] {3} - {4}: {5}", 
       loggerName, 
@@ -119,6 +142,8 @@ public:
   
 private:
   Logger::Level        m_logLevel;
+  StringVector         m_selectedLoggers;
+  StringVector         m_selectedHosts;
 };
 
 //-------------------------------------------------------------------------------------------------
@@ -139,6 +164,22 @@ int main(int argc, char* argv[])
       , &verbosityConstraint);
   pCommandLine->add(verbosityArg);
   
+  TCLAP::MultiArg<std::string> selectLoggersArg(
+      "l"
+      , "select-loggers"
+      , "Print only log message for the specified loggers"
+      , false
+      , "string");
+  pCommandLine->add(selectLoggersArg);
+  
+  TCLAP::MultiArg<std::string> selectHostsArg(
+      "k"
+      , "select-hosts"
+      , "Print only log message for the specified hosts"
+      , false
+      , "string");
+  pCommandLine->add(selectHostsArg);
+  
   // parse command line
   pCommandLine->parse(argc, argv);
   
@@ -151,7 +192,7 @@ int main(int argc, char* argv[])
   try
   {
     Client client;
-    LogPrinter printer(level);
+    LogPrinter printer(level, selectLoggersArg.getValue(), selectHostsArg.getValue());
     client.subscribe(OnlineRoutes::OnlineManager::logs(), &printer, &LogPrinter::printLog);
     
     while(not stopFlag.load())

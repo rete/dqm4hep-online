@@ -226,9 +226,9 @@ namespace dqm4hep {
           m_eventLoop.createTimer("AppStats", 5, false, this, &Application::sendAppStats);
         }
         m_eventLoop.connectOnEvent(this, &Application::onEvent);
-        dqm_info( "Starting event lopp ..." );
+        dqm_info( "Starting event loop ..." );
         returnCode = m_eventLoop.exec();
-        dqm_info( "Exiting event lopp ..." );
+        dqm_info( "Exiting event loop ..." );
         m_eventLoop.disconnectOnEvent(this);
         m_server->onClientExit().disconnectAll();
         this->onStop();

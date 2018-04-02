@@ -29,6 +29,7 @@
 #include "dqm4hep/Internal.h"
 #include "dqm4hep/StatusCodes.h"
 #include "dqm4hep/Logging.h"
+#include "dqm4hep/RemoteLogger.h"
 #include "dqm4hep/OnlineManagerServer.h"
 #include "DQMOnlineConfig.h"
 
@@ -74,10 +75,51 @@ int main(int argc, char* argv[]) {
       , &verbosityConstraint);
   pCommandLine->add(verbosityArg);
   
+  TCLAP::ValueArg<std::string> logFileBaseNameArg(
+      "f"
+      , "log-file-name"
+      , "The log file base name"
+      , false
+      , "dqm4hep-online-log"
+      , "string");
+  pCommandLine->add(logFileBaseNameArg);
+  
+  TCLAP::ValueArg<size_t> logFileMaxSizeArg(
+      "s"
+      , "log-file-max-size"
+      , "The max log file size (unit bytes)"
+      , false
+      , 2*1024*1024
+      , "size_t");
+  pCommandLine->add(logFileMaxSizeArg);
+  
+  TCLAP::ValueArg<size_t> logFileMaxNFilesArg(
+      "n"
+      , "log-file-max-nfiles"
+      , "The max number of log files to rotate"
+      , false
+      , 2
+      , "size_t");
+  pCommandLine->add(logFileMaxNFilesArg);
+  
   // parse command line
   pCommandLine->parse(argc, argv);
   
   std::string verbosity(verbosityArg.getValue());
+  std::string loggerName("online-mgr");
+  
+  std::vector<Logger::AppenderPtr> appenders = {
+    Logger::coloredConsole(),
+    Logger::rotatingFile(
+      logFileBaseNameArg.getValue(), 
+      logFileMaxSizeArg.getValue(), 
+      logFileMaxNFilesArg.getValue()
+    ), 
+    RemoteLogger::make_shared()
+  };
+    
+  Logger::createLogger(loggerName, appenders);
+  Logger::setMainLogger(loggerName);
   Logger::setLogLevel(Logger::logLevelFromString(verbosity));
 
   // install signal handlers

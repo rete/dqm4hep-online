@@ -63,7 +63,7 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
 
     void EventSource::setStreamerName(const std::string &name) {
-      if(m_started) {
+      if(m_started) {
         throw core::StatusCodeException(core::STATUS_CODE_NOT_ALLOWED);
       }        
       m_streamerName = name;

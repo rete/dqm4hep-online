@@ -232,7 +232,6 @@ namespace dqm4hep {
         m_eventLoop.disconnectOnEvent(this);
         m_server->onClientExit().disconnectAll();
         this->onStop();
-        m_eventLoop.disconnectOnEvent(this);
       }
       catch(...) {
         dqm_error( "Application::init(): failed to start the app !" );

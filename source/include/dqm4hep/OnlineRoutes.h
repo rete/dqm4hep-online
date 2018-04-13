@@ -125,6 +125,21 @@ namespace dqm4hep {
          *  @param  collector the collector name
          */
         static std::string collectEvent(const std::string &collector);
+        
+        /**
+         *  @brief  Get the event collector service name to receive event updates
+         * 
+         *  @param  collector the collector name
+         *  @param  source the source name
+         */
+        static std::string eventUpdate(const std::string &collector, const std::string &source);
+        
+        /**
+         *  @brief  Get the event collector request name to receive event on query
+         * 
+         *  @param  collector the collector name
+         */
+        static std::string eventRequest(const std::string &collector);
       };
 
       //-------------------------------------------------------------------------------------------------

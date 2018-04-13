@@ -68,6 +68,7 @@ namespace dqm4hep {
       void handleClientExit(ClientExitEvent *event);
       void handleCollectEvent(const net::Buffer &buffer);
       void handleClientUnregistration(const net::Buffer &buffer);
+      void handleEventRequest(const net::Buffer &request, net::Buffer &response);
       void sendStatsTimer10();
       void sendStatsTimer60();
       void printSourceMap();
@@ -85,6 +86,7 @@ namespace dqm4hep {
         core::StringVector   m_collectors = {};
         core::StringMap      m_hostInfo = {};
         net::Buffer          m_buffer = {};
+        net::Service        *m_eventService = {nullptr};
       };
       
       typedef std::map<std::string, SourceInfo> SourceInfoMap;

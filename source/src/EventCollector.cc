@@ -83,6 +83,11 @@ namespace dqm4hep {
         this, 
         &EventCollector::handleRegistration
       );
+      createRequestHandler(
+        OnlineRoutes::EventCollector::eventRequest(name()), 
+        this, 
+        &EventCollector::handleEventRequest
+      );
       createDirectCommand(
         OnlineRoutes::EventCollector::unregisterSource(name()), 
         this, 
@@ -162,6 +167,7 @@ namespace dqm4hep {
         findIter->second.m_clientId = clientId;
         findIter->second.m_name = registrationDetails.value<std::string>("source", "");
         findIter->second.m_streamerName = registrationDetails.value<std::string>("streamer", "");
+        findIter->second.m_eventService = createService(OnlineRoutes::EventCollector::eventUpdate(name(), findIter->first));
         
         auto collectors = registrationDetails["collectors"];
         auto hostInfo = registrationDetails["host"];
@@ -222,6 +228,8 @@ namespace dqm4hep {
         m_nCollectedEvents60++;
         m_nCollectedBytes10 += buffer.size();
         m_nCollectedBytes60 += buffer.size();
+        // send update
+        findIter->second.m_eventService->sendBuffer(buffer.begin(), buffer.size());
       }
     }
     
@@ -237,6 +245,16 @@ namespace dqm4hep {
         dqm_info( "Removing event source '{0}' from source list !", findIter->second.m_name );
         m_sourceInfoMap.erase(findIter);
         sendStat("NSources", m_sourceInfoMap.size());
+      }
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void EventCollector::handleEventRequest(const net::Buffer &request, net::Buffer &response) {
+      std::string sourceName(request.begin(), request.size());
+      auto findIter = m_sourceInfoMap.find(sourceName);
+      if(m_sourceInfoMap.end() != findIter) {
+        response.setModel(findIter->second.m_buffer.model());
       }
     }
     
@@ -282,13 +300,14 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
     
     EventCollector::SourceInfo::SourceInfo(EventCollector::SourceInfo&& info) :
-      m_clientId(std::move(m_clientId)),
-      m_name(std::move(m_name)),
-      m_streamerName(std::move(m_streamerName)),
-      m_collectors(std::move(m_collectors)),
-      m_hostInfo(std::move(m_hostInfo)),
-      m_buffer(std::move(m_buffer))
-    {
+      m_clientId(std::move(info.m_clientId)),
+      m_name(std::move(info.m_name)),
+      m_streamerName(std::move(info.m_streamerName)),
+      m_collectors(std::move(info.m_collectors)),
+      m_hostInfo(std::move(info.m_hostInfo)),
+      m_buffer(std::move(info.m_buffer)),
+      m_eventService(info.m_eventService) {
+      info.m_eventService = nullptr;
     }
 
   }

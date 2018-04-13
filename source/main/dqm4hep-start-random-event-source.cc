@@ -126,12 +126,13 @@ int main(int argc, char* argv[])
   
   while(running)
   {
-    EventPtr event = GenericEvent::make_shared();;
+    EventPtr event = GenericEvent::make_shared();
     event->setTimeStamp(dqm4hep::core::now());
     event->setType(CUSTOM_EVENT);
     event->setSource(sourceNameArg.getValue());
     event->setRunNumber(runNumber);
     event->setStreamerName("GenericEventStreamer");
+    event->setEventNumber(eventNumber);
     
     GenericEvent *generic = event->getEvent<GenericEvent>();
     std::vector<float> values;

@@ -55,7 +55,6 @@ namespace dqm4hep {
      *          A typical usage could be:
      *          @code
      *          EventSourcePtr source = EventSource::make_shared("EventBuilder");
-     *          source->setStreamerName("GenericEventStreamer");
      *          source->addCollector("CentralCollector");
      *          source->addCollector("PrivateCollector");
      *          source->start();
@@ -85,19 +84,6 @@ namespace dqm4hep {
       const std::string &sourceName() const;
       
       /**
-       *  @brief  Set the event streamer name.
-       *          Must be set before calling start()
-       *          
-       *  @param  name the event streamer name
-       */
-      void setStreamerName(const std::string &name);
-      
-      /**
-       *  @brief  Get the event streamer name
-       */
-      const std::string &streamerName() const;
-      
-      /**
        *  @brief  Add a new collector server to which events will be sent.
        *          Can be used only before calling start().
        *          Must be called at least one time before calling start().
@@ -108,32 +94,25 @@ namespace dqm4hep {
       
       /**
        *  @brief  Start the event source.
-       *          Setup raw buffers, event streamer (plugin) and register it to event collectors
+       *          Setup raw buffers and register it to event collectors
        */
       void start();
 
       /**
        *  @brief  Send a single event to all registered collectors.
-       *          The event must be serializable by using the allocated streamer (see setStreamerName()).
        *  
        *  @param  event the event pointer to serialize and send
        */
-      void sendEvent(const core::EventPtr &event);
+      void sendEvent(core::EventPtr event);
       
       /**
        *  @brief  Send a single event to a single collector. The collector must have been registered
        *          with the function addCollector() before calling this function
-       *          The event must be serializable by using the allocated streamer (see setStreamerName()).
        *
        *  @param  collector the event collector to send 
        *  @param  event the event pointer to serialize and send
        */
-      void sendEvent(const std::string &collector, const core::EventPtr &event);
-      
-      /**
-       *  @brief
-       */
-      core::EventPtr createEvent() const;
+      void sendEvent(const std::string &collector, core::EventPtr event);
       
     private:
       /**
@@ -163,9 +142,9 @@ namespace dqm4hep {
        *  @brief  Perform the actual event sending to the specified list of collectors
        *  
        *  @param  collectors the list of collectors
-       *  @param  event     [description]
+       *  @param  event the event to send
        */
-      void sendEvent(const core::StringVector &collectors, const core::EventPtr &event);
+      void sendEvent(const core::StringVector &collectors, core::EventPtr event);
 
     private:
       /** 
@@ -178,23 +157,20 @@ namespace dqm4hep {
       /**
        *  @brief  CollectorInfo struct
        */
-      struct CollectorInfo
-      {
-        bool             m_registered = false;   ///< Whether the source is registered to the event collector
+      struct CollectorInfo {
+        bool             m_registered = {false};   ///< Whether the source is registered to the event collector
       };
       
     private:
-      typedef std::shared_ptr<core::EventStreamer> EventStreamerPtr;
       typedef std::shared_ptr<xdrstream::BufferDevice> BufferDevicePtr;
       typedef std::map<std::string, CollectorInfo> CollectorInfoMap;
       
-      bool                                m_started = false;               ///< Whether the event source was started
-      std::string                         m_sourceName = "";               ///< The source name
-      std::string                         m_streamerName = "";             ///< The event streamer name (plugin name)
-      EventStreamerPtr                    m_eventStreamer = {nullptr};     ///< The event streamer pointer
-      CollectorInfoMap                    m_collectorInfos = {};           ///< The map of event collector infos
-      net::Client                         m_client;                        ///< The networking client interface 
-      BufferDevicePtr                     m_bufferDevice = {nullptr};      ///< The serialized event raw buffer (from xdrstream)
+      bool                                m_started = {false};               ///< Whether the event source was started
+      std::string                         m_sourceName = {""};               ///< The source name
+      core::EventStreamer                 m_eventStreamer = {};              ///< The event streamer
+      CollectorInfoMap                    m_collectorInfos = {};             ///< The map of event collector infos
+      net::Client                         m_client = {};                     ///< The networking client interface 
+      BufferDevicePtr                     m_bufferDevice = {nullptr};        ///< The serialized event raw buffer (from xdrstream)
     };
 
   }

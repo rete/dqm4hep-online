@@ -28,7 +28,7 @@
 // -- dqm4hep headers
 #include <dqm4hep/EventSource.h>
 #include <dqm4hep/Logging.h>
-#include <dqm4hep/PluginManager.h>
+#include <dqm4hep/EventStreamer.h>
 #include <dqm4hep/Server.h>
 #include <dqm4hep/OnlineRoutes.h>
 
@@ -105,7 +105,7 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
-    void EventSource::sendEvent(const core::EventPtr &event) {
+    void EventSource::sendEvent(core::EventPtr event) {
       core::StringVector collectors;
 
       for(auto iter : m_collectorInfos)
@@ -116,7 +116,7 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
-    void EventSource::sendEvent(const std::string &collector, const core::EventPtr &event) {
+    void EventSource::sendEvent(const std::string &collector, core::EventPtr event) {
       if(m_collectorInfos.end() == m_collectorInfos.find(collector)) {
         dqm_error( "EventSource::sendEvent(col,evt): collector '{0}' not registered !", collector );
         throw core::StatusCodeException(core::STATUS_CODE_NOT_FOUND);
@@ -127,8 +127,8 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
-    void EventSource::sendEvent(const core::StringVector &collectors, const core::EventPtr &event) {
-      if(!m_started) {
+    void EventSource::sendEvent(const core::StringVector &collectors, core::EventPtr event) {
+      if(not m_started) {
         throw core::StatusCodeException(core::STATUS_CODE_NOT_INITIALIZED);
       }
         
@@ -136,7 +136,7 @@ namespace dqm4hep {
         throw core::StatusCodeException(core::STATUS_CODE_INVALID_PTR);
       }
       
-      (void)m_bufferDevice->reset();      
+      (void)m_bufferDevice->reset();
       THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, m_eventStreamer.writeEvent(event, m_bufferDevice.get()));
       
       core::json sourceInfo;
@@ -193,9 +193,11 @@ namespace dqm4hep {
       for(auto colIter : m_collectorInfos)
         collectorsValue.push_back(colIter.first);
       
-      info["source"] = m_sourceName;
-      info["host"] = hostInfo;
-      info["collectors"] = collectorsValue;
+      info = {
+        {"source", m_sourceName},
+        {"host", hostInfo},
+        {"collectors", collectorsValue}
+      };
     }
     
     //-------------------------------------------------------------------------------------------------
@@ -209,6 +211,7 @@ namespace dqm4hep {
       std::string jsonDump(info.dump());
       model->move(std::move(jsonDump));
       
+      dqm_debug( "Sending request to collector {0} for registration, request: {1}", collector , requestName);
       m_client.sendRequest(requestName, requestBuffer, [&returnValue,&collector](const net::Buffer &buffer){
         core::json response({});
         

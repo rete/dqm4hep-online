@@ -94,27 +94,25 @@ namespace dqm4hep {
       
       /**
        *  @brief  Start the event source.
-       *          Setup raw buffers, event streamer (plugin) and register it to event collectors
+       *          Setup raw buffers and register it to event collectors
        */
       void start();
 
       /**
        *  @brief  Send a single event to all registered collectors.
-       *          The event must be serializable by using the allocated streamer (see setStreamerName()).
        *  
        *  @param  event the event pointer to serialize and send
        */
-      void sendEvent(const core::EventPtr &event);
+      void sendEvent(core::EventPtr event);
       
       /**
        *  @brief  Send a single event to a single collector. The collector must have been registered
        *          with the function addCollector() before calling this function
-       *          The event must be serializable by using the allocated streamer (see setStreamerName()).
        *
        *  @param  collector the event collector to send 
        *  @param  event the event pointer to serialize and send
        */
-      void sendEvent(const std::string &collector, const core::EventPtr &event);
+      void sendEvent(const std::string &collector, core::EventPtr event);
       
     private:
       /**
@@ -144,9 +142,9 @@ namespace dqm4hep {
        *  @brief  Perform the actual event sending to the specified list of collectors
        *  
        *  @param  collectors the list of collectors
-       *  @param  event     [description]
+       *  @param  event the event to send
        */
-      void sendEvent(const core::StringVector &collectors, const core::EventPtr &event);
+      void sendEvent(const core::StringVector &collectors, core::EventPtr event);
 
     private:
       /** 
@@ -160,11 +158,10 @@ namespace dqm4hep {
        *  @brief  CollectorInfo struct
        */
       struct CollectorInfo {
-        bool             m_registered = false;   ///< Whether the source is registered to the event collector
+        bool             m_registered = {false};   ///< Whether the source is registered to the event collector
       };
       
     private:
-      typedef std::shared_ptr<core::EventStreamer> EventStreamerPtr;
       typedef std::shared_ptr<xdrstream::BufferDevice> BufferDevicePtr;
       typedef std::map<std::string, CollectorInfo> CollectorInfoMap;
       

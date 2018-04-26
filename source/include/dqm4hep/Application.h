@@ -130,6 +130,8 @@ namespace dqm4hep {
       
       /**
        *  @brief  Change the application state
+       *
+       *  @param  state the new application state
        */
       void setState(const std::string &state);
       
@@ -140,6 +142,8 @@ namespace dqm4hep {
       
       /**
        *  @brief  Get the application log level
+       *
+       *  @param  lvl the new logging level
        */
       void setLogLevel(core::Logger::Level lvl);
       
@@ -147,19 +151,23 @@ namespace dqm4hep {
        *  @brief  Create a statistics entry.
        *  
        *  @param  name the stat entry name
+       *  @param  unit the stat entry unit
        *  @param  description the stat entry description
        */
       void createStatsEntry(const std::string &name, const std::string &unit, const std::string &description);
       
       /**
        *  @brief  Send the stat entry with a new value
+       *
+       *  @param  name the stat entry name
+       *  @param  stats the new stat value
        */
       void sendStat(const std::string &name, double stats);
       
       /**
        *  @brief  Set whether to send statistics on update
        *  
-       *  @param  enable
+       *  @param  enable whether to enable application stats
        */
       void enableStats(bool enable);
       
@@ -172,8 +180,8 @@ namespace dqm4hep {
        *  @brief  Initialize the application.
        *          Calls userInit()
        *  
-       *  @param  argc [description]
-       *  @param  argv [description]
+       *  @param  argc the argc from the main function
+       *  @param  argv the argv from the main function
        */
       void init(int argc, char **argv);
       
@@ -184,6 +192,9 @@ namespace dqm4hep {
 
       /** 
        *  @brief  Exit the application with the specified return code
+       *          If the application is running with exec(), exec will return the specified code
+       *
+       *  @param  returnCode the code to return from exec() 
        */
       void exit(int returnCode);
       
@@ -303,14 +314,36 @@ namespace dqm4hep {
       template <typename Controller>
       void createDirectCommand(const std::string &commandName, Controller *controller, void (Controller::*function)(const net::Buffer &));
       
+      /**
+       *  @brief  Get the current server client id
+       */
       int serverClientId() const;
-      
+
+      /**
+       *  @brief  Send a client exit event in the event loop 
+       * 
+       *  @param clientId the client id
+       */
       void sendClientExitEvent(int clientId);
       
+      /**
+       *  @brief  Create a timer synchronized with the event loop
+       *
+       *  @param  name the timer name
+       *  @param  nSeconds the timer period
+       *  @param  singleShot whether the timer is single shot or repetitive
+       *  @param  controller the user object receiving the timer timeout callback
+       *  @param  function the user method receiving the timer timeout callback
+       */
       template <typename Controller>
       void createTimer(const std::string &name, unsigned int nSeconds, bool singleShot,
                        Controller *controller, void (Controller::*function)());
                        
+      /**
+       *  @brief  Remove a registered timer
+       * 
+       *  @param name the timer name
+       */
       void removeTimer(const std::string &name);
       
     private:
@@ -417,29 +450,49 @@ namespace dqm4hep {
         RequestSignal           m_sendRequestSignal = {};
       };
       
-      typedef std::shared_ptr<NetworkHandler> NetworkHandlerPtr;
-      typedef std::map<const std::string, NetworkHandlerPtr> NetworkHandlerPtrMap;
+      using NetworkHandlerPtr = std::shared_ptr<NetworkHandler>;
+      using NetworkHandlerPtrMap = std::map<const std::string, NetworkHandlerPtr>;
+      using ServerPtr = std::shared_ptr<net::Server>;
+      using LoggerPtr = core::Logger::LoggerPtr;
+      using LogLevel = core::Logger::Level;
+      using Service = net::Service;
+      using Client = net::Client;
       
     private:
-      std::string                  m_type = {""};                     ///< The application type
-      std::string                  m_name = {""};                     ///< The application name
-      std::string                  m_state = {"Unknown"};             ///< The application state
-      bool                         m_running = {false};               ///< Whether the application is running
-      bool                         m_initialized = {false};           ///< Whether the application is initialized
-      bool                         m_statsEnabled = {true};           ///< Whether the application statistics are available  
-
-      AppEventLoop                 m_eventLoop = {};                  ///< The application event loop
-      std::shared_ptr<net::Server> m_server = {nullptr};              ///< The main server interface of the application
-      net::Service                *m_pAppStateService = {nullptr};    ///< The service for application state, updated when the state changes
-      net::Client                  m_client = {};                     ///< The main client interface of the application
+      /// The application type
+      std::string                  m_type = {""};
+      /// The application name
+      std::string                  m_name = {""};
+      /// The application state
+      std::string                  m_state = {"Unknown"};
+      /// Whether the application is running
+      bool                         m_running = {false};
+      /// Whether the application is initialized
+      bool                         m_initialized = {false};
+      /// Whether the application statistics are available 
+      bool                         m_statsEnabled = {true};
+      /// The main server interface of the application
+      ServerPtr                    m_server = {nullptr};
+      /// The service for application state, updated when the state changes
+      Service*                     m_pAppStateService = {nullptr};
+      /// The main client interface of the application
+      Client                       m_client = {};                     
+      /// The map handling service updates from the client interface
+      NetworkHandlerPtrMap         m_serviceHandlerPtrMap = {};
+      /// The map handling request handlers from the server interface
+      NetworkHandlerPtrMap         m_requestHandlerPtrMap = {};
+      /// The map handling command handlers from the server interface
+      NetworkHandlerPtrMap         m_commandHandlerPtrMap = {}; 
+      /// The json value handling the application statistics
+      core::json                   m_statistics = {};                 
+      /// The application logger
+      LoggerPtr                    m_logger = {nullptr};
+      /// The logger log level
+      LogLevel                     m_logLevel = {spdlog::level::info};
       
-      NetworkHandlerPtrMap         m_serviceHandlerPtrMap = {};       ///< The map handling service updates from the client interface
-      NetworkHandlerPtrMap         m_requestHandlerPtrMap = {};       ///< The map handling request handlers from the server interface
-      NetworkHandlerPtrMap         m_commandHandlerPtrMap = {};       ///< The map handling command handlers from the server interface
-
-      core::json                   m_statistics = {};                 ///< The json value handling the application statistics
-      core::Logger::LoggerPtr      m_logger = {nullptr};              ///< The application logger
-      core::Logger::Level          m_logLevel = {spdlog::level::info}; ///< The logger log level
+    protected:
+      /// The application event loop
+      AppEventLoop                 m_eventLoop = {};
     };
     
     //-------------------------------------------------------------------------------------------------

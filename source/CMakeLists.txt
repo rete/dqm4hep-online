@@ -21,6 +21,8 @@ SET( SRC_FILES ${SRC_FILES} src/AppEventLoop.cc )
 SET( SRC_FILES ${SRC_FILES} src/Application.cc )
 SET( SRC_FILES ${SRC_FILES} src/EventCollector.cc )
 SET( SRC_FILES ${SRC_FILES} src/EventCollectorClient.cc )
+SET( SRC_FILES ${SRC_FILES} src/Module.cc )
+SET( SRC_FILES ${SRC_FILES} src/Cycle.cc )
 
 # ----- Http run control based on Mongoose library -----
 if( BUILD_HTTP_RC )
@@ -57,6 +59,12 @@ BUILD_EXECUTABLE( main dqm4hep-start-online-mgr bin )
 BUILD_EXECUTABLE( main dqm4hep-online-logger bin )
 BUILD_EXECUTABLE( main dqm4hep-start-event-collector bin )
 BUILD_EXECUTABLE( main dqm4hep-dump-event bin )
+
+# -------------------------------------------------
+# build unit tests
+if( DQM4HEP_TESTING )
+  dqm4hep_add_tests()
+endif()
 
 # -------- clang tidy and format --------
 dqm4hep_run_clang_tidy()

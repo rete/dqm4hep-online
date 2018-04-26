@@ -45,6 +45,7 @@ namespace dqm4hep {
         REQUEST_HANDLING,
         COMMAND_HANDLING,
         CLIENT_EXIT,
+        END_OF_CYCLE,
         USER = 1024,
         MAX_USER = 65535
       };
@@ -77,7 +78,9 @@ namespace dqm4hep {
       int priority() const;
       
     private:
+      /// The application event type
       int               m_type = {AppEvent::NONE};
+      /// The event priority
       int               m_priority = {50};
     };
 

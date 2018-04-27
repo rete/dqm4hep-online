@@ -30,7 +30,6 @@
 #define DQM4HEP_MODULE_H
 
 // -- dqm4hep headers
-#include "dqm4hep/StatusCodes.h"
 #include "dqm4hep/Internal.h"
 #include "dqm4hep/Run.h"
 #include "dqm4hep/Event.h"
@@ -84,14 +83,14 @@ namespace dqm4hep {
       *          In this method, user should book monitor elements.
       *          See ModuleApi class.
        */
-      virtual core::StatusCode initModule() = 0;
+      virtual void initModule() = 0;
 
       /** 
        *  @brief  Read the user settings from the xml handle
        *
        *  @brief  handle the xml handle
        */
-      virtual core::StatusCode readSettings(const core::TiXmlHandle &handle) = 0;
+      virtual void readSettings(const core::TiXmlHandle &handle) = 0;
       
       /**
        *  @brief  Callback function on start of run.
@@ -99,13 +98,13 @@ namespace dqm4hep {
        *
        *  @param  run the run configuration
        */
-      virtual core::StatusCode startOfRun(const core::Run &run) = 0;
+      virtual void startOfRun(core::Run &run) = 0;
 
       /** 
        *  @brief  Callback function on start of cycle.
        *          User can take appropriate actions such as monitor element reset, etc ...
        */
-      virtual core::StatusCode startOfCycle() = 0;
+      virtual void startOfCycle() = 0;
 
       /** 
        *  @brief  Callback function on end of cycle
@@ -113,7 +112,7 @@ namespace dqm4hep {
        *
        *  @param  condition the end of cycle conditions
        */
-      virtual core::StatusCode endOfCycle(const EOCCondition &condition) = 0;
+      virtual void endOfCycle(const EOCCondition &condition) = 0;
       
       /**
        *  @brief  Callback function on end of run.
@@ -121,12 +120,12 @@ namespace dqm4hep {
        *
        *  @param  run the run configuration
        */
-      virtual core::StatusCode endOfRun(const core::Run &run) = 0;
+      virtual void endOfRun(const core::Run &run) = 0;
 
       /** 
        *  @brief  Callback function before terminate
        */
-      virtual core::StatusCode endModule() = 0;
+      virtual void endModule() = 0;
 
     protected:
       /** 
@@ -204,7 +203,7 @@ namespace dqm4hep {
        *
        *  @param  item the item to process
        */
-      virtual core::StatusCode process(T item) = 0;
+      virtual void process(T item) = 0;
     };
     
     //-------------------------------------------------------------------------------------------------
@@ -231,12 +230,12 @@ namespace dqm4hep {
       /**
        *  @brief  Callback function. Fully user defined
        */
-      virtual core::StatusCode process() = 0;
+      virtual void process() = 0;
     };
     
+    using ModulePtr = std::shared_ptr<Module>;
     using AnalysisModule = ModuleT<core::EventPtr>;
     using StandaloneModule = ModuleT<void>;
-    
   }
 
 } 

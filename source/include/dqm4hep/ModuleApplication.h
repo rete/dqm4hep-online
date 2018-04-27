@@ -30,129 +30,135 @@
 #define DQM4HEP_MODULEAPPLICATION_H
 
 // -- dqm4hep headers
-#include "dqm4hep/DQM4HEP.h"
+#include "dqm4hep/Internal.h"
+#include "dqm4hep/StatusCodes.h"
+#include "dqm4hep/RunControl.h"
+#include "dqm4hep/XMLParser.h"
 #include "dqm4hep/Application.h"
+#include "dqm4hep/Cycle.h"
 #include "dqm4hep/Module.h"
-#include "dqm4hep/AlertSystem.h"
-#include "dqm4hep/MonitorElementSender.h"
 #include "dqm4hep/MonitorElementManager.h"
+
+// -- tclap headers
+#include "tclap/CmdLine.h"
+#include "tclap/Arg.h"
 
 namespace dqm4hep {
 
-  namespace core {
+  namespace online {
 
-    class Archiver;
-    class ModuleApi;
-
-    /** ModuleApplication class
+    /** 
+     *  @brief  ModuleApplication class
      */
-    class ModuleApplication : public Application
-    {
-      friend class Archiver;
-      friend class ModuleApi;
+    class ModuleApplication : public Application {
     public:
-      /** Constructor
+      /**
+       *  @brief  Mode enumerator
+       */
+      enum Mode {
+        UNDEFINED,
+        ANALYSIS,
+        STANDALONE
+      };
+      
+      /** 
+       *  @brief  Constructor
        */
       ModuleApplication();
 
-      /** Destructor
+      /** 
+       *  @brief  Default destructor
        */
-      virtual ~ModuleApplication();
+      ~ModuleApplication() = default;
 
-      /** Run the application
+      /** 
+       *  @brief  Get the module managed by this application
        */
-      virtual StatusCode run() = 0;
+      ModulePtr module() const;
 
-      /** Stop the application
+      /** 
+       *  @brief  Get the module name
        */
-      virtual StatusCode exit( int returnCode );
+      const std::string &moduleName() const;
 
-      /** Read the settings from file
+      /** 
+       *  @brief  Get the module type
        */
-      virtual StatusCode readSettings( const std::string &settingsFile ) = 0;
-
-      /** Get the application type
+      const std::string &moduleType() const;
+      
+      /**
+       *  @brief  Get the application mode
        */
-      virtual const std::string &getType() const = 0;
-
-      /** Get the application name
+      Mode mode() const;
+      
+      /**
+       *  @brief  Get the run control
        */
-      virtual const std::string &getName() const = 0;
-
-      /** Get the module for this application
+      const RunControl& runControl() const;
+      
+    private:
+      void parseCmdLine(int argc, char **argv) override;
+      void onInit() override;
+      void onEvent(AppEvent *pAppEvent) override;
+      void onStart() override;
+      void onStop() override;
+      
+      /**
+       *  @brief  Parse the input steering file
+       *
+       *  @param  fname the file name to parse
        */
-      Module *getModule() const;
-
-      /** Whether the module application should stop
+      void parseSteeringFile(const std::string &fname);
+      
+      /**
+       * 
        */
-      bool shouldStopApplication() const;
-
-      /** Set the application stop flag
+      void configureModule(core::TiXmlElement *element);
+      
+      /**
+       * 
        */
-      void setStopApplication(bool stopApplication);
-
-      /** Set the module name in used
+      void configureCycle(core::TiXmlElement *element);
+      
+      /**
+       * 
        */
-      StatusCode setModuleName(const std::string &name);
-
-      /** Set the module type to look for (before calling readSettings())
+      void configureNetwork(core::TiXmlElement *element);
+      
+      
+      void processStartOfRun(ServiceUpdateEvent *svc);
+      
+      void processEndOfRun();
+      
+      using CmdLine = std::shared_ptr<TCLAP::CmdLine>;
+      
+      /**
+       *  @brief  Priorities enumerator
        */
-      StatusCode setModuleType(const std::string &type);
-
-      /** Get the module name in used
-       */
-      const std::string &getModuleName() const;
-
-      /** Get the module type in used
-       */
-      const std::string &getModuleType() const;
-
-      /** Whether the application is initialized
-       */
-      bool isInitialized() const;
-
-      /** Get the return code when application ends
-       */
-      StatusCode getReturnCode() const;
-
-    protected:
-      /** Set the application has initialized
-       */
-      void setInitialized(bool initialized);
-
-      /** Get the monitor element manager
-       */
-      MonitorElementManager *getMonitorElementManager() const;
-
-      /** Get the monitor element sender
-       */
-      MonitorElementSender *getMonitorElementSender() const;
-
-      /** Get the alert notifier
-       */
-      AlertNotifier *getAlertNotifier() const;
-
-      /** Set the module in use in this application
-       */
-      StatusCode setModule(Module *pModule);
-
-      /** Create the alert notifier with the module name
-       */
-      StatusCode createAlertNotifier(const std::string moduleName);
-
-    protected:
-      StatusCode                   m_returnCode;
-      Module                      *m_pModule;
+      enum Priorities {
+        EVENT = 50,
+        END_OF_CYCLE = 70,
+        START_OF_RUN = 79,
+        END_OF_RUN = 80
+      };
 
     private:
-      bool                         m_isInitialized;
-      bool                         m_shouldStop;
-      std::string                  m_moduleType;
-      std::string                  m_moduleName;
-
-      MonitorElementManager       *m_pMonitorElementManager;
-      MonitorElementSender        *m_pMonitorElementSender;
-      AlertNotifier               *m_pAlertNotifier;
+      /// The user module type (plugin name)
+      std::string                  m_moduleType = {""};
+      /// The user module name (runtime defined)
+      std::string                  m_moduleName = {""};
+      /// The application run control
+      RunControl                   m_runControl = {};
+      /// The application running mode
+      Mode                         m_mode = {UNDEFINED};
+      /// The command line argument object
+      CmdLine                      m_cmdLine = {nullptr};
+      /// The XML parser to parse the input steering file
+      core::XMLParser              m_parser = {};
+      /// The user module plugin 
+      ModulePtr                    m_module = {nullptr};
+      /// The cycle object managing cycles in the application
+      Cycle                        m_cycle;
     };
 
   }

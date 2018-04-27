@@ -27,193 +27,274 @@
 
 // -- dqm4hep headers
 #include "dqm4hep/ModuleApplication.h"
-#include "dqm4hep/MonitorElementSender.h"
-#include "dqm4hep/MonitorElementManager.h"
+#include "dqm4hep/PluginManager.h"
+#include "dqm4hep/OnlineRoutes.h"
+#include "dqm4hep/XmlHelper.h"
+#include "DQMOnlineConfig.h"
 
 namespace dqm4hep {
 
-  namespace core {
-
+  namespace online {
+    
     ModuleApplication::ModuleApplication() :
-		    m_isInitialized(false),
-		    m_shouldStop(false),
-		    m_pModule(NULL),
-		    m_pMonitorElementManager(NULL),
-		    m_pMonitorElementSender(NULL),
-		    m_pAlertNotifier(NULL)
-    {
-      m_pMonitorElementManager = new MonitorElementManager();
-      m_pMonitorElementSender = new MonitorElementSender(this);
+      m_cycle(m_eventLoop) {
+      
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void ModuleApplication::parseCmdLine(int argc, char **argv) {
+      std::string cmdLineFooter = "Please report bug to <dqm4hep@desy.de>";
+      m_cmdLine = std::make_shared<CmdLine::element_type>(cmdLineFooter, ' ', DQMOnline_VERSION_STR);
+
+      TCLAP::ValueArg<std::string> steeringFileNameArg(
+          "f"
+          , "steering-file"
+          , "The xml steering file for the module application"
+          , true
+          , ""
+          , "string");
+      m_cmdLine->add(steeringFileNameArg);
+
+      core::StringVector verbosities(core::Logger::logLevels());
+      TCLAP::ValuesConstraint<std::string> verbosityConstraint(verbosities);
+      TCLAP::ValueArg<std::string> verbosityArg(
+          "v"
+          , "verbosity"
+          , "The logging verbosity"
+          , false
+          , "info"
+          , &verbosityConstraint);
+      m_cmdLine->add(verbosityArg);
+      
+      TCLAP::ValueArg<std::string> moduleTypeArg(
+          "t"
+          , "type"
+          , "The module type to run (plugin name). Overwrite the module type from steering file"
+          , false
+          , ""
+          , "string");
+      m_cmdLine->add(moduleTypeArg);
+      
+      TCLAP::ValueArg<std::string> moduleNameArg(
+          "n"
+          , "name"
+          , "The module name to run. Overwrite the module name from steering file"
+          , false
+          , ""
+          , "string");
+      m_cmdLine->add(moduleNameArg);
+
+      // TCLAP::MultiArg<std::string> parameterArg(
+      //     "p"
+      //     , "parameter"
+      //     , "A parameter to replace in the application (see XmlHelper)"
+      //     , false
+      //     , "");
+      // m_cmdLine->add(parameterArg);
+      
+      // parse command line
+      m_cmdLine->parse(argc, argv);
+
+      m_moduleType = moduleTypeArg.getValue();
+      m_moduleName = moduleNameArg.getValue();
+      // setType(OnlineRoutes::ModuleApplication::applicationType());
+      setType("module");
+      setLogLevel(core::Logger::logLevelFromString(verbosityArg.getValue()));
+
+      parseSteeringFile(steeringFileNameArg.getValue());
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void ModuleApplication::onInit() {
+      dqm_info( "Module application mode set to {0}", m_mode );
+      
+      m_cycle.setEventPriority(Priorities::END_OF_CYCLE);
+      m_runControl.onStartOfRun().connect(m_module.get(), &Module::startOfRun);
+      m_runControl.onEndOfRun().connect(m_module.get(), &Module::endOfRun);
+      
+      queuedSubscribe(
+        OnlineRoutes::RunControl::sor(m_runControl.name()),
+        Priorities::START_OF_RUN
+      );
+      queuedSubscribe(
+        OnlineRoutes::RunControl::eor(m_runControl.name()),
+        Priorities::END_OF_RUN
+      );
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void ModuleApplication::onEvent(AppEvent * appEvent) {
+      if(AppEvent::SERVICE_UPDATE == appEvent->type()) {
+        ServiceUpdateEvent* svc = dynamic_cast<ServiceUpdateEvent*>(appEvent);
+        // Start of run
+        if(svc->serviceName() == OnlineRoutes::RunControl::sor(m_runControl.name())) {
+          processStartOfRun(svc);
+        }
+        // End of run
+        if(svc->serviceName() == OnlineRoutes::RunControl::eor(m_runControl.name())) {
+          processEndOfRun();
+        }
+      }
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void ModuleApplication::onStart() {
+      // get run control status in case it is already running
+      sendRequest(OnlineRoutes::RunControl::status(m_runControl.name()), net::Buffer(), [this](const net::Buffer &response){
+        core::json statusJson = core::json::parse(response.begin(), response.end());
+        bool rcRunning = statusJson.value<bool>("running", false);
+        if(rcRunning) {
+          core::json runJson = statusJson.value<core::json>("run", core::json({}));
+          core::Run run;
+          run.fromJson(runJson);
+          m_runControl.startNewRun(run);
+        }
+      });
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void ModuleApplication::onStop() {
+      
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+  
+    ModulePtr ModuleApplication::module() const {
+      return m_module;
     }
 
     //-------------------------------------------------------------------------------------------------
 
-    ModuleApplication::~ModuleApplication()
-    {
-      delete m_pMonitorElementManager;
-      delete m_pMonitorElementSender;
-
-      if(m_pModule)
-        delete m_pModule;
-
-      if(m_pAlertNotifier)
-        delete m_pAlertNotifier;
-    }
-
-    //-------------------------------------------------------------------------------------------------
-
-    StatusCode ModuleApplication::exit( int returnCode )
-    {
-      LOG4CXX_INFO( dqmMainLogger , "Exiting module application ..." );
-
-      if(!this->isInitialized())
-        return STATUS_CODE_NOT_INITIALIZED;
-
-      if( returnCode >= 0 && returnCode < NUMBER_OF_STATUS_CODES )
-        m_returnCode = static_cast< StatusCode >( returnCode );
-      else
-        m_returnCode = STATUS_CODE_FAILURE;
-
-      this->setStopApplication(true);
-
-      LOG4CXX_INFO( dqmMainLogger , "Exiting module application ... OK" );
-
-      return m_returnCode;
-    }
-
-    //-------------------------------------------------------------------------------------------------
-
-    Module *ModuleApplication::getModule() const
-    {
-      return m_pModule;
-    }
-
-    //-------------------------------------------------------------------------------------------------
-
-    bool ModuleApplication::shouldStopApplication() const
-    {
-      return m_shouldStop;
-    }
-
-    //-------------------------------------------------------------------------------------------------
-
-    void ModuleApplication::setStopApplication(bool stopApplication)
-    {
-      m_shouldStop = stopApplication;
-    }
-
-    //-------------------------------------------------------------------------------------------------
-
-    StatusCode ModuleApplication::setModuleName(const std::string &name)
-    {
-      if(this->isInitialized())
-        return STATUS_CODE_ALREADY_INITIALIZED;
-
-      m_moduleName = name;
-
-      if(m_pModule)
-        m_pModule->setName(name);
-
-      return STATUS_CODE_SUCCESS;
-    }
-
-    //-------------------------------------------------------------------------------------------------
-
-    StatusCode ModuleApplication::setModuleType(const std::string &type)
-    {
-      if(this->isInitialized())
-        return STATUS_CODE_ALREADY_INITIALIZED;
-
-      m_moduleType = type;
-
-      return STATUS_CODE_SUCCESS;
-    }
-
-    //-------------------------------------------------------------------------------------------------
-
-    const std::string &ModuleApplication::getModuleName() const
-    {
-      if(m_pModule)
-        return m_pModule->getName();
-
+    const std::string &ModuleApplication::moduleName() const {
       return m_moduleName;
     }
 
     //-------------------------------------------------------------------------------------------------
 
-    const std::string &ModuleApplication::getModuleType() const
-    {
+    const std::string &ModuleApplication::moduleType() const {
       return m_moduleType;
     }
 
     //-------------------------------------------------------------------------------------------------
 
-    bool ModuleApplication::isInitialized() const
-    {
-      return m_isInitialized;
+    ModuleApplication::Mode ModuleApplication::mode() const {
+      return m_mode;
     }
 
     //-------------------------------------------------------------------------------------------------
 
-    StatusCode ModuleApplication::getReturnCode() const
-    {
-      return m_returnCode;
+    const RunControl& ModuleApplication::runControl() const {
+      return m_runControl;
     }
-
+    
     //-------------------------------------------------------------------------------------------------
-
-    void ModuleApplication::setInitialized(bool initialized)
-    {
-      m_isInitialized = initialized;
+    
+    void ModuleApplication::parseSteeringFile(const std::string &fname) {
+      m_parser.parse(fname);
+      
+      auto document = m_parser.document();
+      const core::TiXmlHandle xmlHandle(document.RootElement());
+      
+      auto moduleElement = xmlHandle.FirstChildElement("module").Element();
+      configureModule(moduleElement);
+      
+      auto cycleElement = xmlHandle.FirstChildElement("cycle").Element();
+      configureCycle(cycleElement);
+      
+      auto networkElement = xmlHandle.FirstChildElement("network").Element();
+      configureNetwork(networkElement);
     }
-
+    
     //-------------------------------------------------------------------------------------------------
-
-    MonitorElementManager *ModuleApplication::getMonitorElementManager() const
-    {
-      return m_pMonitorElementManager;
+    
+    void ModuleApplication::configureModule(core::TiXmlElement *element) {
+      if(m_moduleType.empty()) {
+        THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, core::XmlHelper::getAttribute(element, "type", m_moduleType));
+      }
+      if(m_moduleName.empty()) {
+        THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, core::XmlHelper::getAttribute(element, "name", m_moduleName));
+      }
+      if(m_moduleType.empty() or m_moduleName.empty()) {
+        dqm_error( "Undefined module type and/or module name (type: {0}, name: {1}).", m_moduleType, m_moduleName );
+        throw core::StatusCodeException(core::STATUS_CODE_FAILURE);
+      }
+      setName(m_moduleName);
+      m_module = core::PluginManager::instance()->create<Module>(m_moduleType);
+      if(nullptr == m_module) {
+        dqm_error( "Module '{0}' not registered in plugin manager!" );
+        dqm_error( "Please check your plugin settings (libraries, environment) and restart the application" );
+        throw core::StatusCodeException(core::STATUS_CODE_NOT_FOUND);
+      }
+      if(nullptr != dynamic_cast<AnalysisModule*>(m_module.get())) {
+        m_mode = ANALYSIS;
+      }
+      else if(nullptr != dynamic_cast<StandaloneModule*>(m_module.get())) {
+        m_mode = STANDALONE;
+      }
+      else {
+        dqm_error( "Undefined module type, must be AnalysisModule or StandaloneModule" );
+        throw core::StatusCodeException(core::STATUS_CODE_INVALID_PARAMETER);
+      }
+      m_module->setModuleApplication(this);
+      const core::TiXmlHandle moduleHandle(element);
+      
+      m_module->readSettings(moduleHandle);
+      m_module->initModule();
     }
-
+    
     //-------------------------------------------------------------------------------------------------
-
-    MonitorElementSender *ModuleApplication::getMonitorElementSender() const
-    {
-      return m_pMonitorElementSender;
+    
+    void ModuleApplication::configureCycle(core::TiXmlElement *element) {
+      unsigned int timeout = 10;
+      unsigned int period = 30;
+      unsigned int counterLimit = 0;
+      if(nullptr != element) {
+        core::TiXmlHandle handle(element);
+        THROW_RESULT_IF_AND_IF(core::STATUS_CODE_SUCCESS, core::STATUS_CODE_NOT_FOUND, !=, core::XmlHelper::readParameter(handle, "Timeout", timeout));
+        THROW_RESULT_IF_AND_IF(core::STATUS_CODE_SUCCESS, core::STATUS_CODE_NOT_FOUND, !=, core::XmlHelper::readParameter(handle, "Teriod", period));
+        THROW_RESULT_IF_AND_IF(core::STATUS_CODE_SUCCESS, core::STATUS_CODE_NOT_FOUND, !=, core::XmlHelper::readParameter(handle, "Counter", counterLimit));
+      }
+      if((timeout >= period) || (0 == period && 0 == counterLimit)) {
+        dqm_error( "Invalid cycle settings: period={0}, timeout={1}, counter={2}", period, timeout, counterLimit );
+        throw core::StatusCodeException(core::STATUS_CODE_INVALID_PARAMETER);
+      }
+      m_cycle.setTimeout(timeout);
+      m_cycle.setTimerPeriod(period);
+      m_cycle.setCounterLimit(counterLimit);
     }
-
+    
     //-------------------------------------------------------------------------------------------------
-
-    AlertNotifier *ModuleApplication::getAlertNotifier() const
-    {
-      return m_pAlertNotifier;
+    
+    void ModuleApplication::configureNetwork(core::TiXmlElement *element) {
+      core::TiXmlHandle handle(element);
+      std::string runControlName;
+      THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, core::XmlHelper::readParameter(handle, "RunControl", runControlName));
+      m_runControl.setName(runControlName);
     }
-
+    
     //-------------------------------------------------------------------------------------------------
-
-    StatusCode ModuleApplication::setModule(Module *pModule)
-    {
-      if(!pModule)
-        return STATUS_CODE_INVALID_PTR;
-
-      m_pModule = pModule;
-      m_pModule->setName(m_moduleName);
-      m_pModule->setModuleApplication(this);
-
-      RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->createAlertNotifier(m_moduleName))
-
-      return STATUS_CODE_SUCCESS;
+    
+    void ModuleApplication::processStartOfRun(ServiceUpdateEvent *svc) {
+      core::json runJson = core::json::parse(svc->buffer().begin(), svc->buffer().end());
+      core::Run run;
+      run.fromJson(runJson);
+      dqm_info( "Starting new run {0}", run.getRunNumber() );
+      m_runControl.startNewRun(run);
     }
-
+    
     //-------------------------------------------------------------------------------------------------
-
-    StatusCode ModuleApplication::createAlertNotifier(const std::string moduleName)
-    {
-      if( m_pAlertNotifier )
-        return STATUS_CODE_ALREADY_INITIALIZED;
-
-      m_pAlertNotifier = new DimAlertNotifier(moduleName);
-
-      return STATUS_CODE_SUCCESS;
+    
+    void ModuleApplication::processEndOfRun() {
+      // core::json runJson = core::json::parse(svc->buffer().begin(), svc->buffer().end());
+      // core::Run run;
+      // run.fromJson(runJson);
+      dqm_info( "Ending current run {0}", m_runControl.currentRun().getRunNumber() );
+      m_runControl.endCurrentRun(m_runControl.currentRun().parameters());
     }
 
   }

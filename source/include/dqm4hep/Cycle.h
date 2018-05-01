@@ -164,7 +164,7 @@ namespace dqm4hep {
        *  @param  emit whether to emit the end of cycle signal
        */
       void forceStopCycle(bool waitEnd = true, bool emit = false);
-
+      
       /** 
        *  @brief  Whether the cycle is running
        */
@@ -211,31 +211,6 @@ namespace dqm4hep {
       std::atomic_int                  m_eventPriority = {60};
       /// The last time point when the increement method was called
       core::TimePoint                  m_lastCounterIncrement = {};
-    };
-    
-    //-------------------------------------------------------------------------------------------------
-    //-------------------------------------------------------------------------------------------------
-    
-    /**
-     *  @brief  EndOfCycleEvent class
-     */
-    class EndOfCycleEvent : public AppEvent {
-    public:
-      /**
-       *  @brief  Constructor
-       *
-       *  @param  condition the end of cycle conditions
-       */
-      EndOfCycleEvent(const EOCCondition &condition);
-      
-      /**
-       *  @brief  Get the end of cycle conditions
-       */
-      const EOCCondition& condition() const;
-      
-    private:
-      /// The end of cycle conditions
-      EOCCondition         m_eocCondition = {};
     };
 
   }

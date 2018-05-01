@@ -38,17 +38,6 @@
 namespace dqm4hep {
 
   namespace online {
-
-    class QuitEvent : public AppEvent {
-    public:
-      QuitEvent(int returnCode);
-      int returnCode() const;
-    private:
-      int          m_returnCode = {0};
-    };
-    
-    //-------------------------------------------------------------------------------------------------
-    //-------------------------------------------------------------------------------------------------
     
     class ServiceUpdateEvent : public AppEvent {
     public:
@@ -91,34 +80,20 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
     //-------------------------------------------------------------------------------------------------
     
-    class ClientExitEvent : public AppEvent {
+    template <typename T>
+    class StoreEvent : public AppEvent {
     public:
-      ClientExitEvent(int clientId);
-      int clientId() const;
+      StoreEvent(int type, T data);
+      const T &data() const;
     private:
-      int                   m_clientId = {0};
+      T                m_data;
     };
+    
+    //-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
 
-    //-------------------------------------------------------------------------------------------------
-    //-------------------------------------------------------------------------------------------------
-    //-------------------------------------------------------------------------------------------------
-    //-------------------------------------------------------------------------------------------------
-
-    inline QuitEvent::QuitEvent(int code) :
-      AppEvent(AppEvent::QUIT),
-      m_returnCode(code) {
-      setPriority(100);
-    }
-    
-    //-------------------------------------------------------------------------------------------------
-    
-    inline int QuitEvent::returnCode() const {
-      return m_returnCode;
-    }
-    
-    //-------------------------------------------------------------------------------------------------
-    //-------------------------------------------------------------------------------------------------
-    
     inline ServiceUpdateEvent::ServiceUpdateEvent(const std::string &sname, net::BufferModelPtr bufferModel) :
       AppEvent(SERVICE_UPDATE),
       m_serviceName(sname) {
@@ -189,16 +164,18 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
     //-------------------------------------------------------------------------------------------------
     
-    inline ClientExitEvent::ClientExitEvent(int id) :
-      AppEvent(AppEvent::CLIENT_EXIT),
-      m_clientId(id) {
+    template <typename T>
+    inline StoreEvent<T>::StoreEvent(int t, T d) :
+      AppEvent(t),
+      m_data(d) {
       /* nop */
     }
     
     //-------------------------------------------------------------------------------------------------
-    
-    inline int ClientExitEvent::clientId() const {
-      return m_clientId;
+
+    template <typename T>
+    inline const T &StoreEvent<T>::data() const {
+      return m_data;
     }
 
   }

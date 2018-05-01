@@ -35,6 +35,12 @@ namespace dqm4hep {
 
   namespace online {
     
+    Application::~Application() {
+      removeTimer(m_appStatTimer);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
     const std::string &Application::type() const {
       return m_type;
     }
@@ -223,7 +229,11 @@ namespace dqm4hep {
         if(m_statsEnabled) {
           // send statistics every 5 seconds
           dqm_info( "Statistics enabled. Creating timer (5 secs) ..." );
-          m_eventLoop.createTimer("AppStats", 5, false, this, &Application::sendAppStats);
+          m_appStatTimer = createTimer();
+          m_appStatTimer->setInterval(5000); // 5 seconds
+          m_appStatTimer->setSingleShot(false);
+          m_appStatTimer->onTimeout().connect(this, &Application::sendAppStats);
+          m_appStatTimer->start();
         }
         m_eventLoop.connectOnEvent(this, &Application::onEvent);
         dqm_info( "Starting event loop ..." );
@@ -316,14 +326,8 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
     
     void Application::sendClientExitEvent(int id) {
-      ClientExitEvent *pEvent = new ClientExitEvent(id);
-      m_eventLoop.sendEvent(pEvent);
-    }
-    
-    //-------------------------------------------------------------------------------------------------
-    
-    void Application::removeTimer(const std::string &tname) {
-      m_eventLoop.removeTimer(tname);
+      auto event = new StoreEvent<int>(AppEvent::CLIENT_EXIT, id);
+      m_eventLoop.sendEvent(event);
     }
     
     //-------------------------------------------------------------------------------------------------
@@ -331,13 +335,14 @@ namespace dqm4hep {
     void Application::sendAppStats() {
       core::MemoryStats stats;
       core::memStats(stats);
-      
+      dqm_debug( "Sending internal app stats ..." );
       sendStat("VmProc", stats.vmproc/(1024.));
       sendStat("VmTotal", (stats.vmproc/(stats.vmtot*1.))*(100./1024));
       sendStat("VmInUse", (stats.vmproc/(stats.vmused*1.))*(100./1024));
       sendStat("RSSProc", stats.rssproc/(1024.));
       sendStat("RSSTotal", (stats.rssproc/(stats.rsstot*1.))*(100./1024));
       sendStat("RSSInUse", (stats.rssproc/(stats.rssused*1.))*(100./1024));
+      dqm_debug( "Sending internal app stats ... OK" );
     }
     
     //-------------------------------------------------------------------------------------------------
@@ -352,6 +357,20 @@ namespace dqm4hep {
       createStatsEntry("RSSProc", "Mo", "The current resident set size memory in use by the application (unit Mo)");
       createStatsEntry("RSSTotal", "%", "The current resident set size memory percentage in use by the application compare to the total available on the host (unit %)");
       createStatsEntry("RSSInUse", "%", "The current resident set size memory percentage in use by the application compare to the total used by the running processes (unit %)");
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    AppTimer* Application::createTimer() {
+      auto timer = new AppTimer(m_eventLoop);
+      m_eventLoop.addTimer(timer);
+      return timer;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void Application::removeTimer(AppTimer *timer) {
+      m_eventLoop.removeTimer(timer);
     }
     
     //-------------------------------------------------------------------------------------------------

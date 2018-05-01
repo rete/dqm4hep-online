@@ -36,6 +36,7 @@
 #include "dqm4hep/Signal.h"
 #include "dqm4hep/Logging.h"
 #include "dqm4hep/StatusCodes.h"
+#include "dqm4hep/AppTimer.h"
 
 #include <mutex>
 #include <atomic>
@@ -45,13 +46,18 @@ namespace dqm4hep {
   namespace online {
     
     class AppEventLoop {
-      class Timer;
-      friend class Timer;
+      friend class AppTimer;
+      friend class Application;
     public:     
       /**
-       *  @brief  Default constructor
+       *  @brief  Constructor
        */
-      AppEventLoop() = default;
+      AppEventLoop();
+      
+      /**
+       *  @brief  Destructor
+       */
+      ~AppEventLoop();
        
       /**
        *  @brief  Post an event in the event queue. 
@@ -122,27 +128,6 @@ namespace dqm4hep {
       bool hasEventConnection(T *pObject);
       
       /**
-       *  @brief  Create a timer and start it if the event loop has started yet.
-       *          The timer name can be used to stop the timer using the stopTimer(name) function.
-       *
-       *  @param  name the timer name
-       *  @param  nSeconds the number of seconds before timeout
-       *  @param  singleShot whether the timer is single shot or repetitive
-       *  @param  controller the object processing the timeout signal
-       *  @param  function the object method called on timeout
-       */
-      template <typename Controller>
-      void createTimer(const std::string &name, unsigned int nSeconds, bool singleShot,
-                       Controller *controller, void (Controller::*function)());
-                       
-      /**
-       *  @brief  Remove a specific timer
-       *
-       *  @param  name the timer name specified on creation
-       */
-      void removeTimer(const std::string &name);
-      
-      /**
        *  @brief  Exit the event loop with the specified status
        *
        *  @param  returnCode the code to return
@@ -183,35 +168,12 @@ namespace dqm4hep {
       
     private:
       void processEvent(AppEvent *pAppEvent);
-      void removeTimer(Timer *timer);
       
-    private:
-      /**
-       *  @brief  Timer class
-       */
-      class Timer : private DimTimer {
-      public:
-        Timer(const std::string &name, AppEventLoop &loop);
-        
-        const std::string &name() const;
-        void setTimeout(int nSeconds);
-        int timeout() const;
-        void startTimer();
-        void stopTimer();
-        void setSingleShot(bool single);
-        bool singleShot() const;
-        core::Signal<void> &onTimeout();
-
-      private:
-        void timerHandler();
-
-      private:
-        std::string        m_name = {""};
-        core::Signal<void> m_timeoutSignal = {};
-        bool               m_singleShot = {true};
-        int                m_timeout = {10};
-        AppEventLoop&      m_appEventLoop;
-      };
+      void timerThread();
+      void addTimer(AppTimer *timer);
+      void startTimer(AppTimer *timer);
+      void stopTimer(AppTimer *timer);
+      void removeTimer(AppTimer *timer);
       
     private:
       // not copiable, not movable
@@ -220,19 +182,20 @@ namespace dqm4hep {
       AppEventLoop(AppEventLoop&&) = delete;
       
       typedef std::shared_ptr<AppEvent> AppEventPtr;
-      typedef std::map<std::string, Timer*> TimerMap;
       
       std::deque<AppEventPtr>                      m_eventQueue = {};
       std::recursive_mutex                         m_queueMutex = {};
       std::recursive_mutex                         m_eventMutex = {};
       std::recursive_mutex                         m_exceptionMutex = {};
+      std::recursive_mutex                         m_timerMutex = {};
       core::Signal<AppEvent *>                     m_onEventSignal = {};
       core::Signal<AppEvent *>                     m_onExceptionSignal = {};
       std::atomic<bool>                            m_running = {false};
       std::atomic<bool>                            m_quitFlag = {false};
       std::atomic<int>                             m_returnCode = {0};
-      TimerMap                                     m_timers = {};
-      TimerMap                                     m_timerRemovals = {};
+      std::thread                                  m_timerThread = {};
+      std::atomic_bool                             m_timerStopFlag = {false};
+      std::set<AppTimer*>                          m_timers = {};
     };
     
     //-------------------------------------------------------------------------------------------------
@@ -282,30 +245,6 @@ namespace dqm4hep {
     inline void AppEventLoop::processFunction(Function function, Args ...args) {
       std::lock_guard<std::recursive_mutex> lock(m_eventMutex);
       function(args...);
-    }
-    
-    //-------------------------------------------------------------------------------------------------
-    
-    template <typename Controller>
-    inline void AppEventLoop::createTimer(const std::string &name, unsigned int nSeconds, bool singleShot,
-                     Controller *controller, void (Controller::*function)()) {
-      std::lock_guard<std::recursive_mutex> lock(m_eventMutex);
-      auto findIter = m_timers.find(name);
-      
-      if(m_timers.end() != findIter) {
-        dqm_error( "AppEventLoop::createTimer: Timer with name '{0}' already exists", name );
-        throw core::StatusCodeException(core::STATUS_CODE_ALREADY_PRESENT);
-      }
-      // create a new timer
-      Timer *timer = new Timer(name, *this);
-      timer->setSingleShot(singleShot);
-      timer->setTimeout(nSeconds);
-      timer->onTimeout().connect(controller, function);
-      m_timers[name] = timer;
-      
-      if(running()) {
-        timer->startTimer();
-      }
     }
 
   }

@@ -51,11 +51,13 @@ namespace dqm4hep {
        *  @brief  Default constructor
        */
       EventCollector();
+      EventCollector(const EventCollector&) = delete;
+      EventCollector& operator=(const EventCollector&) = delete;
       
       /**
        *  @brief  Default destructor
        */
-      ~EventCollector() = default;
+      ~EventCollector();
       
       void parseCmdLine(int argc, char **argv) override;
       void onInit() override;
@@ -65,7 +67,7 @@ namespace dqm4hep {
 
     private:
       void handleRegistration(const net::Buffer &request, net::Buffer &response);
-      void handleClientExit(ClientExitEvent *event);
+      void handleClientExit(StoreEvent<int> *event);
       void handleCollectEvent(const net::Buffer &buffer);
       void handleClientUnregistration(const net::Buffer &buffer);
       void handleEventRequest(const net::Buffer &request, net::Buffer &response);
@@ -79,6 +81,8 @@ namespace dqm4hep {
       struct SourceInfo {
         SourceInfo() = default;
         SourceInfo(SourceInfo&& info);
+        SourceInfo(const SourceInfo&) = delete;
+        SourceInfo& operator=(const SourceInfo&) = delete;
         
         int                  m_clientId = {0};
         std::string          m_name = {""};
@@ -99,6 +103,8 @@ namespace dqm4hep {
       unsigned int                        m_nCollectedEvents60 = {0};
       unsigned int                        m_nCollectedBytes10 = {0};
       unsigned int                        m_nCollectedBytes60 = {0};
+      AppTimer*                           m_statsTimer10 = {nullptr};
+      AppTimer*                           m_statsTimer60 = {nullptr};
     };
 
   }

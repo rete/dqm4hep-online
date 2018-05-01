@@ -34,7 +34,7 @@
 #include "dqm4hep/Logger.h"
 #include "dqm4hep/json.h"
 #include "dqm4hep/Client.h"
-#include "spdlog/sinks/sink.h"
+#include "spdlog/sinks/base_sink.h"
 
 namespace dqm4hep {
 
@@ -43,7 +43,7 @@ namespace dqm4hep {
     /**
      *  @brief  RemoteLogger class
      */
-    class RemoteLogger : public spdlog::sinks::sink {
+    class RemoteLogger : public spdlog::sinks::base_sink<std::mutex> {
     public:
       /**
        *  @brief  Constructor
@@ -60,7 +60,7 @@ namespace dqm4hep {
        *  
        *  @param  msg the spdlog log message 
        */
-      void log(const spdlog::details::log_msg& msg) override;
+      void _sink_it(const spdlog::details::log_msg& msg) override;
       
       /**
        *  @brief  Flush the message

@@ -47,7 +47,7 @@ namespace dqm4hep {
         
     //-------------------------------------------------------------------------------------------------
     
-    void RemoteLogger::log(const spdlog::details::log_msg& msg) {
+    void RemoteLogger::_sink_it(const spdlog::details::log_msg& msg) {
       m_message = {
         {"logger",   *msg.logger_name},
         {"level",   msg.level},

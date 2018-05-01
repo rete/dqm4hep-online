@@ -132,7 +132,7 @@ namespace dqm4hep {
         m_forceStopFlag = true;
         if(waitEnd) {
           while(running()) {
-            sleep(1000);
+            usleep(1000);
           }          
         }
       }
@@ -209,24 +209,9 @@ namespace dqm4hep {
       condition.m_rate = (condition.m_startTime == condition.m_endTime) ? 0 : (condition.m_counter / condition.m_totalTime);
       dqm_debug( "End of cycle !" );
       // post event to event loop
-      EndOfCycleEvent *event = new EndOfCycleEvent(condition);
+      auto *event = new StoreEvent<EOCCondition>(AppEvent::END_OF_CYCLE, condition);
       event->setPriority(m_eventPriority.load());
       m_eventLoop.postEvent(event);
-    }
-    
-    //-------------------------------------------------------------------------------------------------
-    //-------------------------------------------------------------------------------------------------
-    
-    EndOfCycleEvent::EndOfCycleEvent(const EOCCondition &cond) :
-      AppEvent(AppEvent::END_OF_CYCLE),
-      m_eocCondition(cond) {
-      setPriority(60);
-    }
-    
-    //-------------------------------------------------------------------------------------------------
-
-    const EOCCondition& EndOfCycleEvent::condition() const {
-      return m_eocCondition;
     }
 
   }

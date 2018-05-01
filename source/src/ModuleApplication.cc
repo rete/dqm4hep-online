@@ -109,7 +109,6 @@ namespace dqm4hep {
     
     void ModuleApplication::onInit() {
       dqm_info( "Module application mode set to {0}", m_mode );
-      
       m_cycle.setEventPriority(Priorities::END_OF_CYCLE);
       m_runControl.onStartOfRun().connect(m_module.get(), &Module::startOfRun);
       m_runControl.onEndOfRun().connect(m_module.get(), &Module::endOfRun);
@@ -138,6 +137,54 @@ namespace dqm4hep {
           processEndOfRun();
         }
       }
+      if(AppEvent::END_OF_RUN == appEvent->type()) {
+        auto eorEvent = dynamic_cast<StoreEvent<core::Run>*>(appEvent);
+        auto run = eorEvent->data();
+        m_runControl.endCurrentRun(run.parameters());
+      }
+      // process event received from the event collector
+      if(AppEvent::PROCESS_EVENT == appEvent->type() and ModuleApplication::ANALYSIS == m_mode) {
+        if(m_runControl.isRunning()) {
+          auto procEvent = dynamic_cast<StoreEvent<core::EventPtr>*>(appEvent);
+          auto anaModule = moduleAs<AnalysisModule>();
+          anaModule->process(procEvent->data());
+          m_cycle.incrementCounter();
+        }
+      }
+      // generic loop
+      if(AppEvent::PROCESS_EVENT == appEvent->type() and ModuleApplication::STANDALONE == m_mode) {
+        auto procEvent = dynamic_cast<StoreEvent<core::TimePoint>*>(appEvent);
+        auto standModule = moduleAs<StandaloneModule>();
+        standModule->process();
+        m_cycle.incrementCounter();
+        const core::TimePoint now = core::now();
+        const float limit = static_cast<float>(m_standaloneSleep);
+        const float ellapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now-procEvent->data()).count() / 1000.f;
+        if(ellapsed < limit) {
+          const unsigned int sleepTime = static_cast<unsigned int>((limit-ellapsed)*1000000);
+          ::usleep(sleepTime);
+        }
+        auto *processEvent = new StoreEvent<core::TimePoint>(AppEvent::PROCESS_EVENT, core::now()); 
+        processEvent->setPriority(ModuleApplication::PROCESS_CALL);
+        m_eventLoop.postEvent(processEvent);
+      }
+      // end of cycle
+      if(AppEvent::END_OF_CYCLE == appEvent->type()) {
+        auto eocEvent = dynamic_cast<StoreEvent<EOCCondition>*>(appEvent);
+        auto condition = eocEvent->data();
+        m_module->endOfCycle(condition);
+        // always restart a new cycle for standalone modules
+        if(ModuleApplication::STANDALONE == m_mode) {
+          m_module->startOfCycle();
+          m_cycle.startCycle(true);           
+        }
+        // forced end is a synonym of end of run for analysis modules
+        // do not restart a cycle in this case
+        if(ModuleApplication::ANALYSIS == m_mode and not condition.m_forcedEnd) {
+          m_module->startOfCycle();
+          m_cycle.startCycle(true); 
+        }
+      }
     }
     
     //-------------------------------------------------------------------------------------------------
@@ -154,6 +201,17 @@ namespace dqm4hep {
           m_runControl.startNewRun(run);
         }
       });
+      if(ModuleApplication::STANDALONE == m_mode) {
+        auto *processEvent = new StoreEvent<core::TimePoint>(AppEvent::PROCESS_EVENT, core::now());
+        processEvent->setPriority(ModuleApplication::PROCESS_CALL);
+        m_eventLoop.postEvent(processEvent);
+        m_module->startOfCycle();
+        m_cycle.startCycle(true);
+      }
+      else if(ModuleApplication::ANALYSIS == m_mode and m_runControl.isRunning()) {
+        m_module->startOfCycle();
+        m_cycle.startCycle(true);
+      }
     }
     
     //-------------------------------------------------------------------------------------------------
@@ -226,7 +284,7 @@ namespace dqm4hep {
       setName(m_moduleName);
       m_module = core::PluginManager::instance()->create<Module>(m_moduleType);
       if(nullptr == m_module) {
-        dqm_error( "Module '{0}' not registered in plugin manager!" );
+        dqm_error( "Module '{0}' not registered in plugin manager!", m_moduleType );
         dqm_error( "Please check your plugin settings (libraries, environment) and restart the application" );
         throw core::StatusCodeException(core::STATUS_CODE_NOT_FOUND);
       }
@@ -256,13 +314,18 @@ namespace dqm4hep {
       if(nullptr != element) {
         core::TiXmlHandle handle(element);
         THROW_RESULT_IF_AND_IF(core::STATUS_CODE_SUCCESS, core::STATUS_CODE_NOT_FOUND, !=, core::XmlHelper::readParameter(handle, "Timeout", timeout));
-        THROW_RESULT_IF_AND_IF(core::STATUS_CODE_SUCCESS, core::STATUS_CODE_NOT_FOUND, !=, core::XmlHelper::readParameter(handle, "Teriod", period));
+        THROW_RESULT_IF_AND_IF(core::STATUS_CODE_SUCCESS, core::STATUS_CODE_NOT_FOUND, !=, core::XmlHelper::readParameter(handle, "Period", period));
         THROW_RESULT_IF_AND_IF(core::STATUS_CODE_SUCCESS, core::STATUS_CODE_NOT_FOUND, !=, core::XmlHelper::readParameter(handle, "Counter", counterLimit));
       }
       if((timeout >= period) || (0 == period && 0 == counterLimit)) {
         dqm_error( "Invalid cycle settings: period={0}, timeout={1}, counter={2}", period, timeout, counterLimit );
         throw core::StatusCodeException(core::STATUS_CODE_INVALID_PARAMETER);
       }
+      dqm_info( "== Cycle settings ==" );
+      dqm_info( "=> Period:  {0}", period );
+      dqm_info( "=> Timeout: {0}", timeout );
+      dqm_info( "=> Counter: {0}", counterLimit );
+      dqm_info( "====================" );
       m_cycle.setTimeout(timeout);
       m_cycle.setTimerPeriod(period);
       m_cycle.setCounterLimit(counterLimit);
@@ -272,9 +335,20 @@ namespace dqm4hep {
     
     void ModuleApplication::configureNetwork(core::TiXmlElement *element) {
       core::TiXmlHandle handle(element);
+      
       std::string runControlName;
       THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, core::XmlHelper::readParameter(handle, "RunControl", runControlName));
       m_runControl.setName(runControlName);
+      
+      if(m_mode == ModuleApplication::ANALYSIS) {
+        std::string eventCollector;
+        THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, core::XmlHelper::readParameter(handle, "EventCollector", eventCollector));
+        THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, core::XmlHelper::readParameter(handle, "EventSource", m_eventSourceName));
+        THROW_RESULT_IF_AND_IF(core::STATUS_CODE_SUCCESS, core::STATUS_CODE_NOT_FOUND, !=, core::XmlHelper::readParameter(handle, "EventQueueSize", m_eventQueueSize));
+        
+        m_eventCollectorClient = std::make_shared<EventClientPtr::element_type>(eventCollector);
+        m_eventCollectorClient->onEventUpdate(m_eventSourceName, this, &ModuleApplication::receiveEvent);        
+      }
     }
     
     //-------------------------------------------------------------------------------------------------
@@ -283,18 +357,43 @@ namespace dqm4hep {
       core::json runJson = core::json::parse(svc->buffer().begin(), svc->buffer().end());
       core::Run run;
       run.fromJson(runJson);
-      dqm_info( "Starting new run {0}", run.getRunNumber() );
+      dqm_info( "Starting new run {0}", run.runNumber() );
       m_runControl.startNewRun(run);
+      if(ModuleApplication::ANALYSIS == m_mode) {
+        m_module->startOfCycle();
+        m_cycle.startCycle();
+      }
+      if(ModuleApplication::ANALYSIS == m_mode) {
+        m_eventCollectorClient->startEventUpdates(m_eventSourceName);
+      }
     }
     
     //-------------------------------------------------------------------------------------------------
     
     void ModuleApplication::processEndOfRun() {
-      // core::json runJson = core::json::parse(svc->buffer().begin(), svc->buffer().end());
-      // core::Run run;
-      // run.fromJson(runJson);
-      dqm_info( "Ending current run {0}", m_runControl.currentRun().getRunNumber() );
-      m_runControl.endCurrentRun(m_runControl.currentRun().parameters());
+      if(ModuleApplication::ANALYSIS == m_mode) {
+        m_eventCollectorClient->stopEventUpdates(m_eventSourceName);
+      }
+      // end cycle only for analysis module case
+      // standalone modules never stops
+      if(ModuleApplication::ANALYSIS == m_mode) {
+        m_cycle.forceStopCycle(true, true);
+      }
+      auto eorEvent = new StoreEvent<core::Run>(AppEvent::END_OF_RUN, m_runControl.currentRun());
+      eorEvent->setPriority(ModuleApplication::END_OF_RUN);
+      m_eventLoop.postEvent(eorEvent);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void ModuleApplication::receiveEvent(core::EventPtr event) {
+      if(m_currentNQueuedEvents.load() >= m_eventQueueSize) {
+        return;
+      }
+      auto appEvent = new StoreEvent<core::EventPtr>(AppEvent::PROCESS_EVENT, event);
+      appEvent->setPriority(ModuleApplication::PROCESS_CALL);
+      m_eventLoop.postEvent(appEvent);
+      m_currentNQueuedEvents++;
     }
 
   }

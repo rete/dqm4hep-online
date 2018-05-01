@@ -37,6 +37,7 @@
 #include "dqm4hep/Application.h"
 #include "dqm4hep/Cycle.h"
 #include "dqm4hep/Module.h"
+#include "dqm4hep/EventCollectorClient.h"
 #include "dqm4hep/MonitorElementManager.h"
 
 // -- tclap headers
@@ -75,6 +76,12 @@ namespace dqm4hep {
        *  @brief  Get the module managed by this application
        */
       ModulePtr module() const;
+      
+      /**
+       *  @brief  Get a pointer to the user module dynamic casted to a certain type
+       */
+      template <typename ModuleType>
+      ModuleType *moduleAs();
 
       /** 
        *  @brief  Get the module name
@@ -111,35 +118,57 @@ namespace dqm4hep {
       void parseSteeringFile(const std::string &fname);
       
       /**
-       * 
+       *  @brief  Configure the user module
+       *
+       *  @param element the xml element
        */
       void configureModule(core::TiXmlElement *element);
       
       /**
-       * 
+       *  @brief  Configure the application cycle
+       *
+       *  @param element the xml element
        */
       void configureCycle(core::TiXmlElement *element);
       
       /**
-       * 
+       *  @brief  Configure the network interface
+       *
+       *  @param element the xml element
        */
       void configureNetwork(core::TiXmlElement *element);
       
-      
+      /**
+       *  @brief  Process the start of run service update
+       *
+       *  @param svc the service update content
+       */      
       void processStartOfRun(ServiceUpdateEvent *svc);
       
+      /**
+       *  @brief  Process the end of run service update
+       */
       void processEndOfRun();
       
+      /**
+       *  @brief  Receive an event from event collector and post it in the event loop
+       *
+       *  @param  event an event from the event collector
+       */
+      void receiveEvent(core::EventPtr event);
+    
+    private:  
       using CmdLine = std::shared_ptr<TCLAP::CmdLine>;
+      using EventClientPtr = std::shared_ptr<EventCollectorClient>;
       
       /**
        *  @brief  Priorities enumerator
        */
       enum Priorities {
-        EVENT = 50,
+        PROCESS_CALL = 50,
+        END_OF_RUN = 60,
         END_OF_CYCLE = 70,
-        START_OF_RUN = 79,
-        END_OF_RUN = 80
+        START_OF_RUN = 80
       };
 
     private:
@@ -159,7 +188,25 @@ namespace dqm4hep {
       ModulePtr                    m_module = {nullptr};
       /// The cycle object managing cycles in the application
       Cycle                        m_cycle;
+      /// The event collector client to receive events from collector
+      EventClientPtr               m_eventCollectorClient = {nullptr};
+      /// The event source from the event collector
+      std::string                  m_eventSourceName = {""};
+      /// The current number of events in the event loop
+      std::atomic_uint             m_currentNQueuedEvents = {0};
+      /// The maximum of queued events to be processed (sub-sampling)
+      unsigned int                 m_eventQueueSize = {100};
+      ///
+      unsigned int                 m_standaloneSleep = {1};
     };
+    
+    //-------------------------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------------------------
+    
+    template <typename ModuleType>
+    inline ModuleType *ModuleApplication::moduleAs() {
+      return dynamic_cast<ModuleType*>(m_module.get());
+    }
 
   }
 

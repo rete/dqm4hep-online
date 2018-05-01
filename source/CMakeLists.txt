@@ -18,12 +18,14 @@ SET( SRC_FILES ${SRC_FILES} src/RunControlServer.cc )
 SET( SRC_FILES ${SRC_FILES} src/RunControlInterface.cc )
 SET( SRC_FILES ${SRC_FILES} src/AppEvent.cc )
 SET( SRC_FILES ${SRC_FILES} src/AppEventLoop.cc )
+SET( SRC_FILES ${SRC_FILES} src/AppTimer.cc )
 SET( SRC_FILES ${SRC_FILES} src/Application.cc )
 SET( SRC_FILES ${SRC_FILES} src/EventCollector.cc )
 SET( SRC_FILES ${SRC_FILES} src/EventCollectorClient.cc )
 SET( SRC_FILES ${SRC_FILES} src/Module.cc )
 SET( SRC_FILES ${SRC_FILES} src/Cycle.cc )
 SET( SRC_FILES ${SRC_FILES} src/ModuleApplication.cc )
+SET( SRC_FILES ${SRC_FILES} src/OnlineElement.cc )
 set( SRC_FILES ${SRC_FILES} src/plugins/TestModules.cc )
 
 # ----- Http run control based on Mongoose library -----
@@ -46,7 +48,7 @@ dqm4hep_add_executable( main dqm4hep-start-random-event-source bin )
 dqm4hep_add_executable( main dqm4hep-start-online-mgr bin )
 dqm4hep_add_executable( main dqm4hep-online-logger bin )
 dqm4hep_add_executable( main dqm4hep-start-event-collector bin )
-BUILD_EXECUTABLE( main dqm4hep-dump-event bin )
+dqm4hep_add_executable( main dqm4hep-dump-event bin )
 dqm4hep_add_executable( main dqm4hep-start-module bin )
 
 # -------------------------------------------------

@@ -37,6 +37,13 @@ namespace dqm4hep {
     EventCollector::EventCollector() : 
       Application() {
     }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    EventCollector::~EventCollector() {
+      removeTimer(m_statsTimer10);
+      removeTimer(m_statsTimer60);
+    }
 
     //-------------------------------------------------------------------------------------------------
 
@@ -109,18 +116,28 @@ namespace dqm4hep {
       createStatsEntry("NMeanBytes_10sec", "bytes/10 sec", "The mean number of collected bytes within the last 10 secondes");
       
       // app stats timers
-      createTimer("CollectorStats10Secs", 10, false, this, &EventCollector::sendStatsTimer10);
-      createTimer("CollectorStats60Secs", 60, false, this, &EventCollector::sendStatsTimer60);
+      m_statsTimer10 = createTimer();
+      m_statsTimer10->setInterval(10000);
+      m_statsTimer10->setSingleShot(false);
+      m_statsTimer10->onTimeout().connect(this, &EventCollector::sendStatsTimer10);
+      m_statsTimer60 = createTimer();
+      m_statsTimer60->setInterval(60000);
+      m_statsTimer60->setSingleShot(false);
+      m_statsTimer60->onTimeout().connect(this, &EventCollector::sendStatsTimer60);
+      
       m_lastStatCall10 = core::now();
       m_lastStatCall60 = core::now();
+      
+      m_statsTimer10->start();
+      m_statsTimer60->start();
     }
     
     //-------------------------------------------------------------------------------------------------
     
     void EventCollector::onEvent(AppEvent *pAppEvent) {
       if(pAppEvent->type() == AppEvent::CLIENT_EXIT) {
-        ClientExitEvent *pClientExitEvent = (ClientExitEvent *) pAppEvent;
-        this->handleClientExit(pClientExitEvent);
+        auto exitEvent = dynamic_cast<StoreEvent<int>*>(pAppEvent);
+        this->handleClientExit(exitEvent);
       }
     }
     
@@ -196,8 +213,8 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
-    void EventCollector::handleClientExit(ClientExitEvent *event) {
-      const int clientId(event->clientId());
+    void EventCollector::handleClientExit(StoreEvent<int> *event) {
+      const int clientId(event->data());
       auto findIter = std::find_if(m_sourceInfoMap.begin(), m_sourceInfoMap.end(), [&clientId](const SourceInfoMap::value_type &iter){
         return (iter.second.m_clientId == clientId);
       });

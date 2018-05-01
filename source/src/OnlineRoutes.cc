@@ -89,13 +89,13 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
     
     std::string OnlineRoutes::EventCollector::eventUpdate(const std::string &collector, const std::string &source) {
-      return std::string(OnlineRoutes::Application::serverName(applicationType(), collector) + "/updates/" + source);
+      return OnlineRoutes::Application::serverName(applicationType(), collector) + "/updates/" + source;
     }
     
     //-------------------------------------------------------------------------------------------------
 
     std::string OnlineRoutes::EventCollector::eventRequest(const std::string &collector) {
-      return std::string(OnlineRoutes::Application::serverName(applicationType(), collector) + "/lastevt");
+      return OnlineRoutes::Application::serverName(applicationType(), collector) + "/lastevt";
     }
     
     //-------------------------------------------------------------------------------------------------

@@ -1,0 +1,19 @@
+<dqm4hep>
+  <!-- Cycle configuration -->
+  <cycle>
+    <parameter name="Period"> 5 </parameter>
+    <parameter name="Counter"> 0 </parameter>
+    <parameter name="Timeout"> 2 </parameter>
+  </cycle>
+  <!-- Network configuration -->
+  <network>
+    <parameter name="RunControl"> TestRC </parameter>
+    <parameter name="EventCollector"> TestEventCollector </parameter>
+    <parameter name="EventSource"> TestSource </parameter>
+    <parameter name="MonitorElementCollector"> TestMeCollector </parameter>
+  </network>
+  <!-- <module type="TestAnalysisModule" name="TestModule"> -->
+  <module type="TestStandaloneModule" name="TestModule">
+    <parameter name="RandomSeed"> 123456789 </parameter>
+  </module>
+</dqm4hep>

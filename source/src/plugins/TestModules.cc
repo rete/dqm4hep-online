@@ -52,25 +52,25 @@ namespace dqm4hep {
         dqm_info( "TestAnalysisModule::initModule" );
       }
       void startOfRun(core::Run &run) {
-        dqm_info( "TestAnalysisModule::startOfRun: {0}", core::typeToString(run) );
+        dqm_info( "=> TestAnalysisModule::startOfRun: {0}", core::typeToString(run) );
       }
       void startOfCycle() {
-        dqm_info( "TestAnalysisModule::startOfCycle" );
+        dqm_info( "====> TestAnalysisModule::startOfCycle" );
       }
       void endOfCycle(const EOCCondition &condition) {
-        dqm_info( "TestAnalysisModule::endOfCycle: {0}", core::typeToString(condition) );
+        dqm_info( "====> TestAnalysisModule::endOfCycle: {0}", core::typeToString(condition) );
       }
       void endOfRun(const core::Run &run) {
-        dqm_info( "TestAnalysisModule::endOfRun: {0}", core::typeToString(run) );
+        dqm_info( "=> TestAnalysisModule::endOfRun: {0}", core::typeToString(run) );
       }
       void endModule() {
         dqm_info( "TestAnalysisModule::endModule");
       }
       void process(core::EventPtr event) {
-        dqm_info( "TestAnalysisModule::process: received event:");
-        dqm_info( "== Event {0}, run {1} ==", event->getEventNumber(), event->getRunNumber());
-        dqm_info( "====> Event size: {0} bytes", event->getEventSize());
-        dqm_info( "====> Time stamp: {0} ", core::typeToString(std::chrono::system_clock::to_time_t(event->getTimeStamp())));
+        dqm_info( "========> TestAnalysisModule::process: received event:");
+        dqm_info( "========== Event {0}, run {1} ==", event->getEventNumber(), event->getRunNumber());
+        dqm_info( "============> Event size: {0} bytes", event->getEventSize());
+        dqm_info( "============> Time stamp: {0} ", core::typeToString(std::chrono::system_clock::to_time_t(event->getTimeStamp())));
       }
     };
     
@@ -93,22 +93,22 @@ namespace dqm4hep {
         dqm_info( "TestStandaloneModule::initModule" );
       }
       void startOfRun(core::Run &run) {
-        dqm_info( "TestStandaloneModule::startOfRun: {0}", core::typeToString(run) );
+        dqm_info( "=> TestStandaloneModule::startOfRun: {0}", core::typeToString(run) );
       }
       void startOfCycle() {
-        dqm_info( "TestStandaloneModule::startOfCycle" );
+        dqm_info( "====> TestStandaloneModule::startOfCycle" );
       }
       void endOfCycle(const EOCCondition &condition) {
-        dqm_info( "TestStandaloneModule::endOfCycle: {0}", core::typeToString(condition) );
+        dqm_info( "====> TestStandaloneModule::endOfCycle: {0}", core::typeToString(condition) );
       }
       void endOfRun(const core::Run &run) {
-        dqm_info( "TestStandaloneModule::endOfRun: {0}", core::typeToString(run) );
+        dqm_info( "=> TestStandaloneModule::endOfRun: {0}", core::typeToString(run) );
       }
       void endModule() {
         dqm_info( "TestStandaloneModule::endModule");
       }
       void process() {
-        dqm_info( "TestStandaloneModule::process: time is {0}", time(0));
+        dqm_info( "========> TestStandaloneModule::process: time is {0}", time(0));
       }
     };
     

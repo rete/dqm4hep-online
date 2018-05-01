@@ -57,7 +57,7 @@ namespace dqm4hep {
       /** 
        *  @brief  Destructor
        */
-      virtual ~Application() {}
+      virtual ~Application();
 
       /** 
        *  @brief  Parse the command line arguments.
@@ -328,23 +328,16 @@ namespace dqm4hep {
       
       /**
        *  @brief  Create a timer synchronized with the event loop
-       *
-       *  @param  name the timer name
-       *  @param  nSeconds the timer period
-       *  @param  singleShot whether the timer is single shot or repetitive
-       *  @param  controller the user object receiving the timer timeout callback
-       *  @param  function the user method receiving the timer timeout callback
+       *          The allocated timer has to be removed by calling removeTimer()
        */
-      template <typename Controller>
-      void createTimer(const std::string &name, unsigned int nSeconds, bool singleShot,
-                       Controller *controller, void (Controller::*function)());
-                       
+      AppTimer* createTimer();
+      
       /**
-       *  @brief  Remove a registered timer
-       * 
-       *  @param name the timer name
+       *  @brief  Remove timer
+       *  
+       *  @param timer the timer to remove
        */
-      void removeTimer(const std::string &name);
+      void removeTimer(AppTimer *timer);
       
     private:
       /**
@@ -489,6 +482,8 @@ namespace dqm4hep {
       LoggerPtr                    m_logger = {nullptr};
       /// The logger log level
       LogLevel                     m_logLevel = {spdlog::level::info};
+      ///
+      AppTimer*                    m_appStatTimer = {nullptr};
       
     protected:
       /// The application event loop
@@ -508,14 +503,6 @@ namespace dqm4hep {
     template <typename Operation>
     inline void Application::sendRequest(const std::string &rname, const net::Buffer &request, Operation operation) {
       m_client.sendRequest(rname, request, operation);
-    }
-    
-    //-------------------------------------------------------------------------------------------------
-    
-    template <typename Controller>
-    inline void Application::createTimer(const std::string &tname, unsigned int nSeconds, bool singleShot,
-                     Controller *controller, void (Controller::*function)()) {
-      m_eventLoop.createTimer(tname, nSeconds, singleShot, controller, function);
     }
     
     //-------------------------------------------------------------------------------------------------

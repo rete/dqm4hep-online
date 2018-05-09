@@ -173,6 +173,17 @@ namespace dqm4hep {
         auto eocEvent = dynamic_cast<StoreEvent<EOCCondition>*>(appEvent);
         auto condition = eocEvent->data();
         m_module->endOfCycle(condition);
+        if(condition.m_counter > 0) {
+          try {
+            core::QReportStorage reportStorage;
+            // process quality tests
+            THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, m_monitorElementManager->runQualityTests(reportStorage));
+            // TODO send monitor element to collector
+          }
+          catch(StatusCodeException &exception) {
+            dqm_error( "Error caught at end of cycle: {0}", exception.getStatusCode() );
+          }
+        }
         // always restart a new cycle for standalone modules
         if(ModuleApplication::STANDALONE == m_mode) {
           m_module->startOfCycle();

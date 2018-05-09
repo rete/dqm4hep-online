@@ -53,7 +53,7 @@ std::atomic_bool running(true);
 //-------------------------------------------------------------------------------------------------
 
 // key interrupt signal handling
-void int_key_signal_handler(int signal)
+void int_key_signal_handler(int /*signal*/)
 {
   std::cout << std::endl;
   dqm_info( "Caught CTRL+C. Exiting..." );

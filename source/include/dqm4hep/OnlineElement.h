@@ -130,6 +130,22 @@ namespace dqm4hep {
       virtual void reset(bool resetQtests = true);
       
       /**
+       *  @brief  Convert the monitor element to json
+       *  
+       *  @param  object the json object to receive
+       */
+      virtual void toJson(core::json &object) const;
+      
+#if ROOT_VERSION_CODE >= ROOT_VERSION(6, 14, 0)
+      /**
+       *  @brief  Parse the json object and set monitor element properties
+       *  
+       *  @param  object the json object to parse
+       */
+      virtual void fromJson(const core::json &value);
+#endif
+      
+      /**
        *  @brief  Write monitor element to device
        *  
        *  @param  device the device to write to
@@ -165,6 +181,21 @@ namespace dqm4hep {
        *  @param  modName the module name
        */
       void setModuleName(const std::string &modName);
+      
+      /** 
+       *  @brief  Run all quality tests
+       *
+       *  @param  reports the list of quality test reports to receive
+       */
+      core::StatusCode runQualityTests(core::QReportMap &reports);
+
+      /** 
+       *  @brief  Run a specific quality test
+       *
+       *  @param  name the quality test name to run
+       *  @param  report the quality test report to receive
+       */
+      core::StatusCode runQualityTest(const std::string &name, core::QReport &report);
 
     private:
       /// The run number
@@ -175,6 +206,8 @@ namespace dqm4hep {
       std::string                   m_moduleName = {""};
       /// The monitor element description
       std::string                   m_description = {""};
+      /// The quality test reports obtained at end of cycle
+      core::QReportMap              m_reports = {};
     }; 
 
   }

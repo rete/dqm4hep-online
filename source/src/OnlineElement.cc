@@ -28,6 +28,7 @@
 // -- dqm4hep header
 #include <dqm4hep/OnlineElement.h>
 #include <dqm4hep/Logging.h>
+#include <dqm4hep/QualityTest.h>
 
 // -- xdrstream header
 #include <xdrstream/xdrstream.h>
@@ -150,14 +151,65 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
+    core::StatusCode OnlineElement::runQualityTests(core::QReportMap &reports) {
+      RETURN_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, core::MonitorElement::runQualityTests(reports));
+      m_reports.clear();
+      m_reports = reports;
+      return core::STATUS_CODE_SUCCESS;
+    }
+
+    //-------------------------------------------------------------------------------------------------
+
+    core::StatusCode OnlineElement::runQualityTest(const std::string &name, core::QReport &report) {
+      RETURN_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, core::MonitorElement::runQualityTest(name, report));
+      m_reports[report.m_qualityTestName] = report;
+      return core::STATUS_CODE_SUCCESS;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
     void OnlineElement::reset(bool resetQtests) {
-      MonitorElement::reset(resetQtests);
+      core::MonitorElement::reset(resetQtests);
       m_runNumber = 0;
       m_collectorName.clear();
       m_moduleName.clear();
       m_description.clear();
+      m_reports.clear();
     }
     
+    //-------------------------------------------------------------------------------------------------
+    
+    void OnlineElement::toJson(core::json &object) const {
+      core::MonitorElement::toJson(object);
+      object["run"] = m_runNumber;
+      object["collector"] = m_collectorName;
+      object["module"] = m_moduleName;
+      object["description"] = m_description;
+      core::json reports = {};
+      for(auto report : m_reports) {
+        core::json jreport;
+        report.second.toJson(jreport);
+        reports[report.first] = jreport;
+      }
+      object["reports"] = reports;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+#if ROOT_VERSION_CODE >= ROOT_VERSION(6, 14, 0)
+    void OnlineElement::fromJson(const core::json &value) {
+      clear();
+      core::MonitorElement::fromJson(value);
+      m_runNumber = object.value<std::string>("run", 0);
+      m_collectorName = object.value<std::string>("collector", "");
+      m_moduleName = object.value<std::string>("module", "");
+      m_description = object.value<std::string>("description", "");
+      auto reports = object.value("reports", core::json(nullptr));
+      for(auto it = reports.begin() ; it != reports.end() ; it++) {
+        core::QReport report; report.fromJson(it.value());
+        m_reports[it.key()] = report;
+      }
+    }
+#endif
     //-------------------------------------------------------------------------------------------------
 
     core::StatusCode OnlineElement::toDevice(xdrstream::IODevice *device) const {
@@ -170,6 +222,14 @@ namespace dqm4hep {
       XDRSTREAM_SUCCESS_RESTORE(device->write(&m_collectorName), pos);
       XDRSTREAM_SUCCESS_RESTORE(device->write(&m_moduleName), pos);
       XDRSTREAM_SUCCESS_RESTORE(device->write(&m_description), pos);
+      core::json reports = {};
+      for(auto report : m_reports) {
+        core::json jreport;
+        report.second.toJson(jreport);
+        reports[report.first] = jreport;
+      }
+      const std::string qreportStr = reports.dump();
+      XDRSTREAM_SUCCESS_RESTORE(device->write(&qreportStr), pos);
       return core::STATUS_CODE_SUCCESS;
     }
     
@@ -186,6 +246,13 @@ namespace dqm4hep {
       XDRSTREAM_SUCCESS_RESTORE(device->read(&m_collectorName), pos);
       XDRSTREAM_SUCCESS_RESTORE(device->read(&m_moduleName), pos);
       XDRSTREAM_SUCCESS_RESTORE(device->read(&m_description), pos);
+      std::string qreportStr;
+      XDRSTREAM_SUCCESS_RESTORE(device->read(&qreportStr), pos);
+      auto reports = core::json::parse(qreportStr);
+      for(auto it = reports.begin() ; it != reports.end() ; it++) {
+        core::QReport report; report.fromJson(it.value());
+        m_reports[it.key()] = report;
+      }
       return core::STATUS_CODE_SUCCESS;
     }
 

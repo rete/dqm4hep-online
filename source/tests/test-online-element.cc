@@ -47,14 +47,14 @@ using namespace dqm4hep::online;
   }
 
 int main(int /*argc*/, char ** /*argv*/) {
-  Logger::createLogger("test-me-mgr", {Logger::coloredConsole()});
-  Logger::setMainLogger("test-me-mgr");
+  Logger::createLogger("test-online-element", {Logger::coloredConsole()});
+  Logger::setMainLogger("test-online-element");
   Logger::setLogLevel(spdlog::level::debug);
 
   std::unique_ptr<MonitorElementManager> meMgr = std::unique_ptr<MonitorElementManager>(new MonitorElementManager());
 
   OnlineElementPtr monitorElement;
-  OnlineElementList monitorElements;
+  OnlineElementPtrList monitorElements;
   assert_test(STATUS_CODE_SUCCESS == meMgr->bookMonitorElement("TGraph", "/", "TestGraph", monitorElement));
 
   meMgr->getMonitorElements(monitorElements);

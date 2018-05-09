@@ -38,7 +38,7 @@ namespace dqm4hep {
     
     ModuleApplication::ModuleApplication() :
       m_cycle(m_eventLoop) {
-      
+      m_monitorElementManager = std::make_shared<core::MonitorElementManager>();
     }
     
     //-------------------------------------------------------------------------------------------------
@@ -252,20 +252,35 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
+    bool ModuleApplication::allowBooking() const {
+      return m_allowBooking;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    std::shared_ptr<core::MonitorElementManager> ModuleApplication::monitorElementManager() const {
+      return m_monitorElementManager;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
     void ModuleApplication::parseSteeringFile(const std::string &fname) {
       m_parser.parse(fname);
       
       auto document = m_parser.document();
       const core::TiXmlHandle xmlHandle(document.RootElement());
       
+      auto qtestsElement = xmlHandle.FirstChildElement("qtests").Element();
+      if(qtestsElement) {
+        THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, m_monitorElementManager->createQualityTests(qtestsElement));
+      }
+      
       auto moduleElement = xmlHandle.FirstChildElement("module").Element();
       configureModule(moduleElement);
       
-      auto cycleElement = xmlHandle.FirstChildElement("cycle").Element();
-      configureCycle(cycleElement);
-      
-      auto networkElement = xmlHandle.FirstChildElement("network").Element();
-      configureNetwork(networkElement);
+      auto settingsElement = xmlHandle.FirstChildElement("settings").Element();
+      configureCycle(settingsElement);
+      configureNetwork(settingsElement);
     }
     
     //-------------------------------------------------------------------------------------------------
@@ -301,8 +316,10 @@ namespace dqm4hep {
       m_module->setModuleApplication(this);
       const core::TiXmlHandle moduleHandle(element);
       
+      m_allowBooking = true;
       m_module->readSettings(moduleHandle);
       m_module->initModule();
+      m_allowBooking = false;
     }
     
     //-------------------------------------------------------------------------------------------------
@@ -313,9 +330,9 @@ namespace dqm4hep {
       unsigned int counterLimit = 0;
       if(nullptr != element) {
         core::TiXmlHandle handle(element);
-        THROW_RESULT_IF_AND_IF(core::STATUS_CODE_SUCCESS, core::STATUS_CODE_NOT_FOUND, !=, core::XmlHelper::readParameter(handle, "Timeout", timeout));
-        THROW_RESULT_IF_AND_IF(core::STATUS_CODE_SUCCESS, core::STATUS_CODE_NOT_FOUND, !=, core::XmlHelper::readParameter(handle, "Period", period));
-        THROW_RESULT_IF_AND_IF(core::STATUS_CODE_SUCCESS, core::STATUS_CODE_NOT_FOUND, !=, core::XmlHelper::readParameter(handle, "Counter", counterLimit));
+        THROW_RESULT_IF_AND_IF(core::STATUS_CODE_SUCCESS, core::STATUS_CODE_NOT_FOUND, !=, core::XmlHelper::readParameter(handle, "CycleTimeout", timeout));
+        THROW_RESULT_IF_AND_IF(core::STATUS_CODE_SUCCESS, core::STATUS_CODE_NOT_FOUND, !=, core::XmlHelper::readParameter(handle, "CyclePeriod", period));
+        THROW_RESULT_IF_AND_IF(core::STATUS_CODE_SUCCESS, core::STATUS_CODE_NOT_FOUND, !=, core::XmlHelper::readParameter(handle, "CycleCounter", counterLimit));
       }
       if((timeout >= period) || (0 == period && 0 == counterLimit)) {
         dqm_error( "Invalid cycle settings: period={0}, timeout={1}, counter={2}", period, timeout, counterLimit );

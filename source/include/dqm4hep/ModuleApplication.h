@@ -47,11 +47,14 @@
 namespace dqm4hep {
 
   namespace online {
+    
+    class ModuleApi;
 
     /** 
      *  @brief  ModuleApplication class
      */
     class ModuleApplication : public Application {
+      friend class ModuleApi;
     public:
       /**
        *  @brief  Mode enumerator
@@ -102,6 +105,11 @@ namespace dqm4hep {
        *  @brief  Get the run control
        */
       const RunControl& runControl() const;
+      
+      /**
+       *  @brief  Whether the application the application is in a state where booking monitor elements is allowed
+       */
+      bool allowBooking() const;
       
     private:
       void parseCmdLine(int argc, char **argv) override;
@@ -156,10 +164,16 @@ namespace dqm4hep {
        *  @param  event an event from the event collector
        */
       void receiveEvent(core::EventPtr event);
+      
+      /**
+       *  @brief  Get the monitor element manager
+       */
+      std::shared_ptr<core::MonitorElementManager> monitorElementManager() const;
     
     private:  
       using CmdLine = std::shared_ptr<TCLAP::CmdLine>;
       using EventClientPtr = std::shared_ptr<EventCollectorClient>;
+      using MonitorElementManagerPtr = std::shared_ptr<core::MonitorElementManager>;
       
       /**
        *  @brief  Priorities enumerator
@@ -198,6 +212,10 @@ namespace dqm4hep {
       unsigned int                 m_eventQueueSize = {100};
       ///
       unsigned int                 m_standaloneSleep = {1};
+      ///
+      MonitorElementManagerPtr     m_monitorElementManager = {nullptr};
+      ///
+      bool                         m_allowBooking = {false};
     };
     
     //-------------------------------------------------------------------------------------------------

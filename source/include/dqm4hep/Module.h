@@ -41,6 +41,7 @@ namespace dqm4hep {
   namespace online {
 
     class ModuleApplication;
+    class ModuleApi;
     struct EOCCondition;
 
     /** 
@@ -50,6 +51,7 @@ namespace dqm4hep {
      */
     class Module {
       friend class ModuleApplication;
+      friend class ModuleApi;
     public:
       /** 
        *  @brief  Default constructor

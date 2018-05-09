@@ -258,7 +258,7 @@ namespace dqm4hep {
        *  @param  monitorElement the monitor element to attach the quality test
        *  @param  qualityTestName the quality test name to attach
        */
-      core::StatusCode addQualityTest(const Module *const module, OnlineElementPtr monitorElement, const std::string &qualityTestName);
+      static core::StatusCode addQualityTest(const Module *const module, OnlineElementPtr monitorElement, const std::string &qualityTestName);
 
     private:
       /**

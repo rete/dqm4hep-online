@@ -1,19 +1,40 @@
 <dqm4hep>
-  <!-- Cycle configuration -->
-  <cycle>
-    <parameter name="Period"> 5 </parameter>
-    <parameter name="Counter"> 0 </parameter>
-    <parameter name="Timeout"> 2 </parameter>
-  </cycle>
-  <!-- Network configuration -->
-  <network>
+  
+  <!-- Application settings -->
+  <settings>
+    <parameter name="CyclePeriod"> 5 </parameter>
+    <parameter name="CycleCounter"> 0 </parameter>
+    <parameter name="CycleTimeout"> 2 </parameter>
     <parameter name="RunControl"> TestRC </parameter>
     <parameter name="EventCollector"> TestEventCollector </parameter>
     <parameter name="EventSource"> TestSource </parameter>
     <parameter name="MonitorElementCollector"> TestMeCollector </parameter>
-  </network>
-  <!-- <module type="TestAnalysisModule" name="TestModule"> -->
+  </settings>
+  
+  <!-- Quality tests to configure -->
+  <qtests>
+    <qtest type="MeanWithinExpectedTest" name="Test1" error="0.3" warning="0.9">
+      <parameter name="ExpectedMean" value="10"/>
+      <parameter name="MeanDeviationLower" value="8"/>
+      <parameter name="MeanDeviationUpper" value="12"/>
+    </qtest>
+  </qtests>
+  
+  <!-- Monitor element to book -->
+  <monitorElements>
+    <!-- This one is booked from a file -->
+    <fileElement path="/" name="Gaus_Mean10_RMS2">
+      <qtest name="MeanAround10Long" />
+    </fileElement>
+    <!-- This one is booked from the xml element description -->
+    <bookElement type="TH1D" path="/" name="TotalEnergy" nBins="151" min="0" max="150">
+      <qtest name="Test1"/>
+    </bookElement>
+  </monitorElements>
+  
+  <!-- User module settings -->
   <module type="TestStandaloneModule" name="TestModule">
     <parameter name="RandomSeed"> 123456789 </parameter>
   </module>
+  
 </dqm4hep>

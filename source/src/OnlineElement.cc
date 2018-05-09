@@ -25,8 +25,12 @@
  * @copyright 
  */
 
-
+// -- dqm4hep header
 #include <dqm4hep/OnlineElement.h>
+#include <dqm4hep/Logging.h>
+
+// -- xdrstream header
+#include <xdrstream/xdrstream.h>
 
 namespace dqm4hep {
   
@@ -35,50 +39,155 @@ namespace dqm4hep {
     OnlineElementPtr OnlineElement::make_shared() {
       return std::shared_ptr<OnlineElement>(new OnlineElement());
     }
+    
+    //-------------------------------------------------------------------------------------------------
 
     OnlineElementPtr OnlineElement::make_shared(TObject *pMonitorObject) {
       return std::shared_ptr<OnlineElement>(new OnlineElement(pMonitorObject));
     }
+    
+    //-------------------------------------------------------------------------------------------------
 
     OnlineElementPtr OnlineElement::make_shared(TObject *pMonitorObject, TObject *pReferenceObject) {
       return std::shared_ptr<OnlineElement>(new OnlineElement(pMonitorObject, pReferenceObject));
     }
+    
+    //-------------------------------------------------------------------------------------------------
 
     OnlineElementPtr OnlineElement::make_shared(const core::PtrHandler<TObject> &monitorObject) {
       return std::shared_ptr<OnlineElement>(new OnlineElement(monitorObject));
     }
+    
+    //-------------------------------------------------------------------------------------------------
 
     OnlineElementPtr OnlineElement::make_shared(const core::PtrHandler<TObject> &monitorObject,
                                    const core::PtrHandler<TObject> &referenceObject) {
       return std::shared_ptr<OnlineElement>(new OnlineElement(monitorObject, referenceObject));
     }
     
+    //-------------------------------------------------------------------------------------------------
+    
     OnlineElement::OnlineElement() :
       core::MonitorElement() {
       /* nop */
     }
+    
+    //-------------------------------------------------------------------------------------------------
     
     OnlineElement::OnlineElement(TObject *pMonitorObject) :
       core::MonitorElement(pMonitorObject) {
       /* nop */
     }
     
+    //-------------------------------------------------------------------------------------------------
+    
     OnlineElement::OnlineElement(TObject *pMonitorObject, TObject *pReferenceObject) :
       core::MonitorElement(pMonitorObject, pReferenceObject) {
       /* nop */
     }
+    
+    //-------------------------------------------------------------------------------------------------
     
     OnlineElement::OnlineElement(const core::PtrHandler<TObject> &monitorObject) :
       core::MonitorElement(monitorObject) {
       /* nop */
     }
     
+    //-------------------------------------------------------------------------------------------------
+    
     OnlineElement::OnlineElement(const core::PtrHandler<TObject> &monitorObject, const core::PtrHandler<TObject> &referenceObject) :
       core::MonitorElement(monitorObject, referenceObject) {
       /* nop */
     }
     
+    //-------------------------------------------------------------------------------------------------
+
+    void OnlineElement::setRunNumber(int runNum) {
+      m_runNumber = runNum;
+    }
     
+    //-------------------------------------------------------------------------------------------------
+    
+    int OnlineElement::runNumber() const {
+      return m_runNumber;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+      
+    const std::string &OnlineElement::collectorName() const {
+      return m_collectorName;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+
+    const std::string &OnlineElement::moduleName() const {
+      return m_moduleName;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void OnlineElement::setDescription(const std::string &desc) {
+      m_description = desc;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    const std::string &OnlineElement::description() const {
+      return m_description;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+   
+    void OnlineElement::setCollectorName(const std::string &colName) {
+      m_collectorName = colName;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+
+    void OnlineElement::setModuleName(const std::string &modName) {
+      m_moduleName = modName;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void OnlineElement::reset(bool resetQtests) {
+      MonitorElement::reset(resetQtests);
+      m_runNumber = 0;
+      m_collectorName.clear();
+      m_moduleName.clear();
+      m_description.clear();
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+
+    core::StatusCode OnlineElement::toDevice(xdrstream::IODevice *device) const {
+      // get initial device state
+      auto pos = device->getPosition();
+      // write base
+      RETURN_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, core::MonitorElement::toDevice(device));
+      // write properties
+      XDRSTREAM_SUCCESS_RESTORE(device->write(&m_runNumber), pos);
+      XDRSTREAM_SUCCESS_RESTORE(device->write(&m_collectorName), pos);
+      XDRSTREAM_SUCCESS_RESTORE(device->write(&m_moduleName), pos);
+      XDRSTREAM_SUCCESS_RESTORE(device->write(&m_description), pos);
+      return core::STATUS_CODE_SUCCESS;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+
+    core::StatusCode OnlineElement::fromDevice(xdrstream::IODevice *device) {
+      reset(false);
+      // get initial device state
+      auto pos = device->getPosition();
+      // read base
+      RETURN_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, core::MonitorElement::fromDevice(device));
+      // read properties
+      XDRSTREAM_SUCCESS_RESTORE(device->read(&m_runNumber), pos);
+      XDRSTREAM_SUCCESS_RESTORE(device->read(&m_collectorName), pos);
+      XDRSTREAM_SUCCESS_RESTORE(device->read(&m_moduleName), pos);
+      XDRSTREAM_SUCCESS_RESTORE(device->read(&m_description), pos);
+      return core::STATUS_CODE_SUCCESS;
+    }
 
   }
 

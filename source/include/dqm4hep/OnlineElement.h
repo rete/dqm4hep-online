@@ -34,15 +34,17 @@
 namespace dqm4hep {
   
   namespace online {
-    
+
+    class ModuleApi;
     class OnlineElement;
     typedef std::shared_ptr<OnlineElement> OnlineElementPtr;
-    typedef std::vector<OnlineElementPtr> OnlineElementList;
+    typedef std::vector<OnlineElementPtr> OnlineElementPtrList;
 
     /** 
      *  @brief  OnlineElement class
      */ 
     class OnlineElement : public core::MonitorElement {
+      friend class ModuleApi;
     public:
       /** 
        *  @brief  Make a shared pointer of OnlineElement
@@ -84,19 +86,94 @@ namespace dqm4hep {
        *  @brief  Destructor 
        */
       virtual ~OnlineElement() {}
+      
+      /**
+       *  @brief  Set the run number
+       * 
+       *  @param runNum the run number
+       */
+      void setRunNumber(int runNum);
+      
+      /**
+       *  @brief  Get the run number
+       */
+      int runNumber() const;
+        
+      /**
+       *  @brief  Get the collector name.
+       *          This property is set only if the element was collected
+       */
+      const std::string &collectorName() const;
+      
+      /**
+       *  @brief  Get the module name that have booked this element
+       */
+      const std::string &moduleName() const;
+      
+      /**
+       *  @brief  Set the description
+       * 
+       *  @param  desc the element description
+       */
+      void setDescription(const std::string &desc);
+      
+      /**
+       *  @brief  Get the description
+       */
+      const std::string &description() const;
+      
+      /**
+       *  @brief  Reset the monitor element
+       *
+       *  @param  resetQtests whether to also reset the quality tests 
+       */
+      virtual void reset(bool resetQtests = true);
+      
+      /**
+       *  @brief  Write monitor element to device
+       *  
+       *  @param  device the device to write to
+       */
+      virtual core::StatusCode toDevice(xdrstream::IODevice *device) const;
+      
+      /**
+       *  @brief  Read the monitor element from device
+       * 
+       *  @param  device the device to read from
+       */
+      virtual core::StatusCode fromDevice(xdrstream::IODevice *device);
      
-   protected:
-     OnlineElement();
-     OnlineElement(TObject *pMonitorObject);
-     OnlineElement(TObject *pMonitorObject, TObject *pReferenceObject);
-     OnlineElement(const core::PtrHandler<TObject> &monitorObject);
-     OnlineElement(const core::PtrHandler<TObject> &monitorObject, const core::PtrHandler<TObject> &referenceObject);
+    protected:
+      OnlineElement();
+      OnlineElement(TObject *pMonitorObject);
+      OnlineElement(TObject *pMonitorObject, TObject *pReferenceObject);
+      OnlineElement(const core::PtrHandler<TObject> &monitorObject);
+      OnlineElement(const core::PtrHandler<TObject> &monitorObject, const core::PtrHandler<TObject> &referenceObject);
+     
+      /**
+       *  @brief  Set the collector name.
+       *          Called by a monitor element collector on collect
+       *
+       *  @param  colName the collector name
+       */
+      void setCollectorName(const std::string &colName);
+     
+      /**
+       *  @brief  Set the module name.
+       *          Called by the module application on element booking
+       *
+       *  @param  modName the module name
+       */
+      void setModuleName(const std::string &modName);
 
     private:
+      /// The run number
       int                           m_runNumber = {0};
+      /// The monitor element collector
       std::string                   m_collectorName = {""};
+      /// The module name that have produced it
       std::string                   m_moduleName = {""};
-      std::string                   m_title = {""};
+      /// The monitor element description
       std::string                   m_description = {""};
     }; 
 

@@ -30,6 +30,7 @@
 #include "dqm4hep/StatusCodes.h"
 #include "dqm4hep/Cycle.h"
 #include "dqm4hep/Module.h"
+#include "dqm4hep/ModuleApi.h"
 #include "dqm4hep/PluginManager.h"
 
 namespace dqm4hep {
@@ -40,7 +41,12 @@ namespace dqm4hep {
     public:      
       TestAnalysisModule() = default;
       ~TestAnalysisModule() = default;
-      
+    private:
+      OnlineElementPtr       m_testGraph = {nullptr};
+      OnlineElementPtr       m_testGraph2D = {nullptr};
+      OnlineElementPtr       m_testHisto1D = {nullptr};
+      OnlineElementPtr       m_testHisto2D = {nullptr};
+    public:
       void readSettings(const core::TiXmlHandle &handle) {
         auto element = handle.Element();
         core::TiXmlPrinter printer;
@@ -50,6 +56,29 @@ namespace dqm4hep {
       }
       void initModule() {
         dqm_info( "TestAnalysisModule::initModule" );
+        // Create graphs in the Graphs directory
+        THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, ModuleApi::mkdir(this, "Graphs"));
+        THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, ModuleApi::cd(this, "Graphs"));
+        
+        THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, ModuleApi::bookObject<TGraph>(this, 
+          m_testGraph, ".", "MyGraph", "The graph title"));
+          
+        THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, ModuleApi::bookObject<TGraph2D>(this, 
+          m_testGraph2D, ".", "MyGraph2D", "The graph 2D title"));
+          
+        // Create the histograms in the Histos directory
+        THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, ModuleApi::cd(this));
+        THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, ModuleApi::mkdir(this, "Histos"));
+        THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, ModuleApi::cd(this, "Histos"));
+          
+        THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, ModuleApi::bookHisto<TH1D>(this, 
+          m_testHisto1D, ".", "MyHisto1D", "The histo 1D title", 10, 0, 45));
+          
+        THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, ModuleApi::bookHisto<TH2D>(this, 
+          m_testHisto2D, ".", "MyHisto2D", "The histo 2D title", 100, 0., 99., 90, 0, 89));
+        
+        THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, ModuleApi::cd(this));
+        THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, ModuleApi::dump(this));
       }
       void startOfRun(core::Run &run) {
         dqm_info( "=> TestAnalysisModule::startOfRun: {0}", core::typeToString(run) );

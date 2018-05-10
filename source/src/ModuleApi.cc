@@ -57,12 +57,6 @@ namespace dqm4hep {
 
     //-------------------------------------------------------------------------------------------------
 
-    // void ModuleApi::ls(const Module *const module, bool recursive) {
-    //   module->moduleApplication()->monitorElementManager()->ls(recursive);
-    // }
-
-    //-------------------------------------------------------------------------------------------------
-
     const std::string &ModuleApi::pwd(const Module *const module) {
       THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, ModuleApi::checkModule(module));
       return module->moduleApplication()->monitorElementManager()->pwd();
@@ -87,6 +81,14 @@ namespace dqm4hep {
     bool ModuleApi::dirExists(const Module *const module, const std::string &dirName) {
       THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, ModuleApi::checkModule(module));
       return module->moduleApplication()->monitorElementManager()->dirExists(dirName);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    core::StatusCode ModuleApi::dump(const Module *const module) {
+      RETURN_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, ModuleApi::checkModule(module));
+      module->moduleApplication()->monitorElementManager()->dumpStorage();
+      return core::STATUS_CODE_SUCCESS;
     }
 
     //-------------------------------------------------------------------------------------------------

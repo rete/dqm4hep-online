@@ -9,6 +9,7 @@
     <parameter name="EventCollector"> TestEventCollector </parameter>
     <parameter name="EventSource"> TestSource </parameter>
     <parameter name="MonitorElementCollector"> TestMeCollector </parameter>
+    <parameter name="StandaloneSleepTime"> 100 </parameter>
   </settings>
   
   <!-- Quality tests to configure -->

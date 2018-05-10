@@ -113,7 +113,7 @@ namespace dqm4hep {
         EventCollectorClient   *m_collectorClient = {nullptr};
         void receiveEvent(const net::Buffer &buffer);
       };
-      friend class SourceInfo;
+      friend struct SourceInfo;
       using SourceInfoMap = std::map<std::string, SourceInfo>;
       
     private:

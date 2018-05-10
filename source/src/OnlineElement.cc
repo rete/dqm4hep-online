@@ -151,6 +151,30 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
+    void OnlineElement::setPublish(bool pub) {
+      m_publish = pub;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    bool OnlineElement::publish() const {
+      return m_publish;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    bool OnlineElement::subscribed() const {
+      return m_subscribed;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    void OnlineElement::setSubscribed(bool sub) {
+      m_subscribed = sub;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
     core::StatusCode OnlineElement::runQualityTests(core::QReportMap &reports) {
       RETURN_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, core::MonitorElement::runQualityTests(reports));
       m_reports.clear();

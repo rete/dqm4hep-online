@@ -27,7 +27,8 @@ SET( SRC_FILES ${SRC_FILES} src/ModuleApi.cc )
 SET( SRC_FILES ${SRC_FILES} src/Cycle.cc )
 SET( SRC_FILES ${SRC_FILES} src/ModuleApplication.cc )
 SET( SRC_FILES ${SRC_FILES} src/OnlineElement.cc )
-set( SRC_FILES ${SRC_FILES} src/plugins/TestModules.cc )
+set( SRC_FILES ${SRC_FILES} src/plugins/TestAnalysisModule.cc )
+set( SRC_FILES ${SRC_FILES} src/plugins/TestStandaloneModule.cc )
 
 # ----- Http run control based on Mongoose library -----
 if( BUILD_HTTP_RC )

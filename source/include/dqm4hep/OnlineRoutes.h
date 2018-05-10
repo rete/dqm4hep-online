@@ -176,6 +176,29 @@ namespace dqm4hep {
          */
         static const std::string collectAppStat();
       };
+      
+      //-------------------------------------------------------------------------------------------------
+      //-------------------------------------------------------------------------------------------------
+      
+      /**
+      *  @brief  ModuleApplication class
+      *          Defines routes related to module application
+       */
+      class ModuleApplication {
+      public:
+        /**
+         *  @brief  Get the application type
+         */
+        static const std::string applicationType();
+        
+        /**
+         *  @brief  Get the name of the command to receive (module) or send (client) a 
+         *          new monitor element subscription list 
+         *          
+         *  @param  moduleName the module name of the aplication
+         */
+        static const std::string subscribe(const std::string &moduleName);
+      };
     };
 
   }

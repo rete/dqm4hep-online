@@ -189,6 +189,9 @@ namespace dqm4hep {
             core::QReportStorage reportStorage;
             // process quality tests
             THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, m_monitorElementManager->runQualityTests(reportStorage));
+            core::json jreports;
+            reportStorage.toJson(jreports);
+            dqm_info( jreports.dump(2) );
             // TODO send monitor element to collector
           }
           catch(core::StatusCodeException &exception) {
@@ -291,8 +294,13 @@ namespace dqm4hep {
       const core::TiXmlHandle xmlHandle(document.RootElement());
       
       auto qtestsElement = xmlHandle.FirstChildElement("qtests").Element();
-      if(qtestsElement) {
+      if(nullptr != qtestsElement) {
         THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, m_monitorElementManager->createQualityTests(qtestsElement));
+      }
+      
+      auto mesElement = xmlHandle.FirstChildElement("monitorElements").Element();
+      if(nullptr != mesElement) {
+        THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, m_monitorElementManager->readMonitorElements<OnlineElement>(mesElement, true));
       }
       
       auto moduleElement = xmlHandle.FirstChildElement("module").Element();

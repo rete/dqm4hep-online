@@ -9,7 +9,6 @@
     <parameter name="EventCollector"> TestEventCollector </parameter>
     <parameter name="EventSource"> TestSource </parameter>
     <parameter name="MonitorElementCollector"> TestMeCollector </parameter>
-    <parameter name="StandaloneSleepTime"> 100 </parameter>
   </settings>
   
   <!-- Quality tests to configure -->
@@ -23,18 +22,14 @@
   
   <!-- Monitor element to book -->
   <monitorElements>
-    <!-- This one is booked from a file -->
-    <fileElement path="/" name="Gaus_Mean10_RMS2">
-      <qtest name="MeanAround10Long" />
-    </fileElement>
     <!-- This one is booked from the xml element description -->
-    <bookElement type="TH1D" path="/" name="TotalEnergy" nBins="151" min="0" max="150">
+    <bookElement type="TH1D" path="/" name="TotalEnergy" title="The total reconstructed energy" nBinsX="151" minX="0" maxX="150">
       <qtest name="Test1"/>
     </bookElement>
   </monitorElements>
   
   <!-- User module settings -->
-  <module type="TestStandaloneModule" name="TestModule">
+  <module type="TestAnalysisModule" name="TestModule">
     <parameter name="RandomSeed"> 123456789 </parameter>
   </module>
   

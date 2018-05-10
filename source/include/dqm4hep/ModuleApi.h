@@ -79,11 +79,7 @@ namespace dqm4hep {
        *  @param  dirName the directory name to create
        */
       static core::StatusCode mkdir(const Module *const module, const std::string &dirName);
-
-      /* List the current directory content
-       */
-      // static void ls(const Module *const module, bool recursive = false);
-
+      
       /** 
        *  @brief  Get the current directory name
        *
@@ -113,6 +109,11 @@ namespace dqm4hep {
        *  @param  dirName the directory name to check
        */
       static bool dirExists(const Module *const module, const std::string &dirName);
+      
+      /**
+       *  @brief  Dump the monitor element storage to console
+       */
+      static core::StatusCode dump(const Module *const module);
 
     public:
 
@@ -279,8 +280,7 @@ namespace dqm4hep {
         dqm_error( "Module application allows monitor element booking only in readSettings() or init() functions !" );
         return core::STATUS_CODE_NOT_ALLOWED;
       }
-      RETURN_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, module->moduleApplication()->monitorElementManager()->bookObject<ObjectType>(path, name, monitorElement, args...));
-      monitorElement->setTitle(title);
+      RETURN_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, module->moduleApplication()->monitorElementManager()->bookObject<ObjectType>(path, name, title, monitorElement, args...));
       monitorElement->setModuleName(module->name());
       return core::STATUS_CODE_SUCCESS;
     }
@@ -294,8 +294,7 @@ namespace dqm4hep {
         dqm_error( "Module application allows monitor element booking only in readSettings() or init() functions !" );
         return core::STATUS_CODE_NOT_ALLOWED;
       }
-      RETURN_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, module->moduleApplication()->monitorElementManager()->bookHisto<HistoType>(path, name, monitorElement, args...));
-      monitorElement->setTitle(title);
+      RETURN_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, module->moduleApplication()->monitorElementManager()->bookHisto<HistoType>(path, name, title, monitorElement, args...));
       monitorElement->setModuleName(module->name());
       return core::STATUS_CODE_SUCCESS;
     }
@@ -309,8 +308,7 @@ namespace dqm4hep {
         dqm_error( "Module application allows monitor element booking only in readSettings() or init() functions !" );
         return core::STATUS_CODE_NOT_ALLOWED;
       }
-      RETURN_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, module->moduleApplication()->monitorElementManager()->bookScalar<ScalarType>(path, name, monitorElement, args...));
-      monitorElement->setTitle(title);
+      RETURN_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, module->moduleApplication()->monitorElementManager()->bookScalar<ScalarType>(path, name, title, monitorElement, args...));
       monitorElement->setModuleName(module->name());
       return core::STATUS_CODE_SUCCESS;
     }

@@ -36,6 +36,7 @@ namespace dqm4hep {
   namespace online {
 
     class ModuleApi;
+    class ModuleApplication;
     class OnlineElement;
     typedef std::shared_ptr<OnlineElement> OnlineElementPtr;
     typedef std::vector<OnlineElementPtr> OnlineElementPtrList;
@@ -45,6 +46,7 @@ namespace dqm4hep {
      */ 
     class OnlineElement : public core::MonitorElement {
       friend class ModuleApi;
+      friend class ModuleApplication;
     public:
       /** 
        *  @brief  Make a shared pointer of OnlineElement
@@ -123,6 +125,23 @@ namespace dqm4hep {
       const std::string &description() const;
       
       /**
+       *  @brief  Set whether to monitor element has to be published at end of cycle (user flag)
+       *  
+       *  @param  publish whether to publish it
+       */
+      void setPublish(bool publish);
+      
+      /**
+       *  @brief  Whether the monitor element has to be published
+       */
+      bool publish() const;
+      
+      /**
+       *  @brief  Whether the element has been subscribed by a shifter (runtime flag)
+       */
+      bool subscribed() const;
+      
+      /**
        *  @brief  Reset the monitor element
        *
        *  @param  resetQtests whether to also reset the quality tests 
@@ -182,6 +201,13 @@ namespace dqm4hep {
        */
       void setModuleName(const std::string &modName);
       
+      /**
+       *  @brief  Set the element as subscribed
+       *  
+       *  @param  sub the subscription flag 
+       */
+      void setSubscribed(bool sub);
+      
       /** 
        *  @brief  Run all quality tests
        *
@@ -208,6 +234,10 @@ namespace dqm4hep {
       std::string                   m_description = {""};
       /// The quality test reports obtained at end of cycle
       core::QReportMap              m_reports = {};
+      /// Whether to publish the element at end of cycle (user flag)
+      bool                          m_publish = {true};
+      /// Whether a shifter has subscribed to this element
+      bool                          m_subscribed = {false};
     }; 
 
   }

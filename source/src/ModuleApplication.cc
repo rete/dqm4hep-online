@@ -105,8 +105,8 @@ namespace dqm4hep {
 
       m_moduleType = moduleTypeArg.getValue();
       m_moduleName = moduleNameArg.getValue();
-      // setType(OnlineRoutes::ModuleApplication::applicationType());
-      setType("module");
+      
+      setType(OnlineRoutes::ModuleApplication::applicationType());
       setLogLevel(core::Logger::logLevelFromString(verbosityArg.getValue()));
 
       parseSteeringFile(steeringFileNameArg.getValue());
@@ -132,6 +132,10 @@ namespace dqm4hep {
         OnlineRoutes::RunControl::eor(m_runControl.name()),
         Priorities::END_OF_RUN
       );
+      createQueuedCommand(
+        OnlineRoutes::ModuleApplication::subscribe(name()),
+        Priorities::SUBSCRIBE
+      );      
     }
     
     //-------------------------------------------------------------------------------------------------
@@ -146,6 +150,13 @@ namespace dqm4hep {
         // End of run
         if(svc->serviceName() == OnlineRoutes::RunControl::eor(m_runControl.name())) {
           processEndOfRun();
+        }
+      }
+      if(AppEvent::COMMAND_HANDLING == appEvent->type()) {
+        CommandEvent *cmd = dynamic_cast<CommandEvent*>(appEvent);
+        // update subscription list
+        if(cmd->commandName() == OnlineRoutes::ModuleApplication::subscribe(name())) {
+          receiveSubscriptionList(cmd);
         }
       }
       if(AppEvent::END_OF_RUN == appEvent->type()) {
@@ -168,16 +179,6 @@ namespace dqm4hep {
         standModule->process();
         m_cycle.incrementCounter();
         m_standaloneTimer->start();
-        // const core::TimePoint now = core::now();
-        // const float limit = static_cast<float>(m_standaloneSleep);
-        // const float ellapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now-procEvent->data()).count() / 1000.f;
-        // if(ellapsed < limit) {
-        //   const unsigned int sleepTime = static_cast<unsigned int>((limit-ellapsed)*1000000);
-        //   ::usleep(sleepTime);
-        // }
-        // auto *processEvent = new StoreEvent<core::TimePoint>(AppEvent::PROCESS_EVENT, core::now()); 
-        // processEvent->setPriority(ModuleApplication::PROCESS_CALL);
-        // m_eventLoop.postEvent(processEvent);
       }
       // end of cycle
       if(AppEvent::END_OF_CYCLE == appEvent->type()) {
@@ -192,6 +193,15 @@ namespace dqm4hep {
             core::json jreports;
             reportStorage.toJson(jreports);
             dqm_info( jreports.dump(2) );
+            
+            OnlineElementPtrList publishElements;
+            m_monitorElementManager->iterate<OnlineElement>([&](OnlineElementPtr monitorElement){
+              if(not monitorElement->publish() or not monitorElement->subscribed()){
+                return true;                
+              }
+              publishElements.push_back(monitorElement);
+              return true;
+            });
             // TODO send monitor element to collector
           }
           catch(core::StatusCodeException &exception) {
@@ -444,6 +454,37 @@ namespace dqm4hep {
       m_currentNQueuedEvents++;
     }
     
+    //-------------------------------------------------------------------------------------------------
+    
+    void ModuleApplication::receiveSubscriptionList(CommandEvent *cmd) {
+      core::json jsubscription = nullptr;
+      try {
+        jsubscription = core::json::parse(cmd->buffer().begin(), cmd->buffer().end());
+      }
+      catch(...) {
+        dqm_error( "Caught exception: Couldn't update monitor element subscription list !" );
+        return;
+      }
+      if(not jsubscription.is_array()) {
+        dqm_error( "Monitor element subscription json object is not a list !" );
+        return;
+      }
+      for(auto &element : jsubscription) {
+        auto path = element.value<std::string>("path", "");
+        auto name = element.value<std::string>("name", "");
+        auto subscribe = element.value<bool>("sub", false);
+        
+        OnlineElementPtr monitorElement = nullptr;
+        if(core::STATUS_CODE_SUCCESS != m_monitorElementManager->getMonitorElement(path, name, monitorElement)) {
+          dqm_warning( "While updating subscription list: couldn't find element path'{0}', name '{1}'", path, name );
+          continue;
+        }
+        monitorElement->setSubscribed(subscribe);
+        dqm_info( "Monitor element: path {0}, name {1} has been {2}subscribed", path, name, subscribe ? "" : "un-" );
+      }
+    }
+    
+    //-------------------------------------------------------------------------------------------------
     
     void ModuleApplication::setElementsRunNumber(core::Run &run) {
       m_monitorElementManager->iterate<OnlineElement>([&](OnlineElementPtr monitorElement){
@@ -452,6 +493,7 @@ namespace dqm4hep {
       });
     }
     
+    //-------------------------------------------------------------------------------------------------
     
     void ModuleApplication::postStandaloneProcess() {
       auto *processEvent = new StoreEvent<core::TimePoint>(AppEvent::PROCESS_EVENT, core::now());

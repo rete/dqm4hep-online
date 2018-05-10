@@ -166,6 +166,13 @@ namespace dqm4hep {
       void receiveEvent(core::EventPtr event);
       
       /**
+       *  @brief  Receive the new monitor element subscription list
+       *  
+       *  @param  cmd the network command buffer (json) 
+       */
+      void receiveSubscriptionList(CommandEvent *cmd);
+      
+      /**
        *  @brief  Slot to set the run number of all monitor elements on start of run
        *  
        *  @param  run the run description
@@ -194,6 +201,7 @@ namespace dqm4hep {
         PROCESS_CALL = 50,
         END_OF_RUN = 60,
         END_OF_CYCLE = 70,
+        SUBSCRIBE = 75,
         START_OF_RUN = 80
       };
 

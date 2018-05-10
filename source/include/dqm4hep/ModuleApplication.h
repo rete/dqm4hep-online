@@ -73,7 +73,7 @@ namespace dqm4hep {
       /** 
        *  @brief  Default destructor
        */
-      ~ModuleApplication() = default;
+      ~ModuleApplication();
 
       /** 
        *  @brief  Get the module managed by this application
@@ -166,9 +166,21 @@ namespace dqm4hep {
       void receiveEvent(core::EventPtr event);
       
       /**
+       *  @brief  Slot to set the run number of all monitor elements on start of run
+       *  
+       *  @param  run the run description
+       */
+      void setElementsRunNumber(core::Run &run);
+      
+      /**
        *  @brief  Get the monitor element manager
        */
       std::shared_ptr<core::MonitorElementManager> monitorElementManager() const;
+      
+      /**
+       *  @brief  Slot to post an event on standalone timer timeout
+       */
+      void postStandaloneProcess();
     
     private:  
       using CmdLine = std::shared_ptr<TCLAP::CmdLine>;
@@ -210,11 +222,13 @@ namespace dqm4hep {
       std::atomic_uint             m_currentNQueuedEvents = {0};
       /// The maximum of queued events to be processed (sub-sampling)
       unsigned int                 m_eventQueueSize = {100};
-      ///
-      unsigned int                 m_standaloneSleep = {1};
-      ///
+      /// The timer for the standalone module mode
+      AppTimer*                    m_standaloneTimer = {nullptr};
+      /// The time between two consecutive standalone module process (unit ms)
+      unsigned int                 m_standaloneSleep = {1000};
+      /// The monitor element manager
       MonitorElementManagerPtr     m_monitorElementManager = {nullptr};
-      ///
+      /// Whether the application for monitor element booking (state variable)
       bool                         m_allowBooking = {false};
     };
     

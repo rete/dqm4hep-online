@@ -28,6 +28,7 @@
 // -- dqm4hep headers
 #include "dqm4hep/ModuleApplication.h"
 #include "dqm4hep/PluginManager.h"
+#include "dqm4hep/OnlineElement.h"
 #include "dqm4hep/OnlineRoutes.h"
 #include "dqm4hep/XmlHelper.h"
 #include "DQMOnlineConfig.h"
@@ -39,6 +40,12 @@ namespace dqm4hep {
     ModuleApplication::ModuleApplication() :
       m_cycle(m_eventLoop) {
       m_monitorElementManager = std::make_shared<core::MonitorElementManager>();
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    ModuleApplication::~ModuleApplication() {
+      removeTimer(m_standaloneTimer);
     }
     
     //-------------------------------------------------------------------------------------------------
@@ -109,10 +116,14 @@ namespace dqm4hep {
     
     void ModuleApplication::onInit() {
       dqm_info( "Module application mode set to {0}", m_mode );
+      m_standaloneTimer = createTimer();
+      m_standaloneTimer->setInterval(m_standaloneSleep);
+      m_standaloneTimer->setSingleShot(true);
+      m_standaloneTimer->onTimeout().connect(this, &ModuleApplication::postStandaloneProcess);
       m_cycle.setEventPriority(Priorities::END_OF_CYCLE);
-      m_runControl.onStartOfRun().connect(m_module.get(), &Module::startOfRun);
+      m_runControl.onStartOfRun().connect(this, &ModuleApplication::setElementsRunNumber);
+      m_runControl.onStartOfRun().connect(m_module.get(), &Module::startOfRun);      
       m_runControl.onEndOfRun().connect(m_module.get(), &Module::endOfRun);
-      
       queuedSubscribe(
         OnlineRoutes::RunControl::sor(m_runControl.name()),
         Priorities::START_OF_RUN
@@ -153,20 +164,20 @@ namespace dqm4hep {
       }
       // generic loop
       if(AppEvent::PROCESS_EVENT == appEvent->type() and ModuleApplication::STANDALONE == m_mode) {
-        auto procEvent = dynamic_cast<StoreEvent<core::TimePoint>*>(appEvent);
         auto standModule = moduleAs<StandaloneModule>();
         standModule->process();
         m_cycle.incrementCounter();
-        const core::TimePoint now = core::now();
-        const float limit = static_cast<float>(m_standaloneSleep);
-        const float ellapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now-procEvent->data()).count() / 1000.f;
-        if(ellapsed < limit) {
-          const unsigned int sleepTime = static_cast<unsigned int>((limit-ellapsed)*1000000);
-          ::usleep(sleepTime);
-        }
-        auto *processEvent = new StoreEvent<core::TimePoint>(AppEvent::PROCESS_EVENT, core::now()); 
-        processEvent->setPriority(ModuleApplication::PROCESS_CALL);
-        m_eventLoop.postEvent(processEvent);
+        m_standaloneTimer->start();
+        // const core::TimePoint now = core::now();
+        // const float limit = static_cast<float>(m_standaloneSleep);
+        // const float ellapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now-procEvent->data()).count() / 1000.f;
+        // if(ellapsed < limit) {
+        //   const unsigned int sleepTime = static_cast<unsigned int>((limit-ellapsed)*1000000);
+        //   ::usleep(sleepTime);
+        // }
+        // auto *processEvent = new StoreEvent<core::TimePoint>(AppEvent::PROCESS_EVENT, core::now()); 
+        // processEvent->setPriority(ModuleApplication::PROCESS_CALL);
+        // m_eventLoop.postEvent(processEvent);
       }
       // end of cycle
       if(AppEvent::END_OF_CYCLE == appEvent->type()) {
@@ -213,9 +224,6 @@ namespace dqm4hep {
         }
       });
       if(ModuleApplication::STANDALONE == m_mode) {
-        auto *processEvent = new StoreEvent<core::TimePoint>(AppEvent::PROCESS_EVENT, core::now());
-        processEvent->setPriority(ModuleApplication::PROCESS_CALL);
-        m_eventLoop.postEvent(processEvent);
         m_module->startOfCycle();
         m_cycle.startCycle(true);
       }
@@ -223,12 +231,13 @@ namespace dqm4hep {
         m_module->startOfCycle();
         m_cycle.startCycle(true);
       }
+      m_standaloneTimer->start();
     }
     
     //-------------------------------------------------------------------------------------------------
     
     void ModuleApplication::onStop() {
-      
+      m_standaloneTimer->stop();
     }
     
     //-------------------------------------------------------------------------------------------------
@@ -292,6 +301,9 @@ namespace dqm4hep {
       auto settingsElement = xmlHandle.FirstChildElement("settings").Element();
       configureCycle(settingsElement);
       configureNetwork(settingsElement);
+      
+      core::TiXmlHandle settingsHandle(settingsElement);
+      THROW_RESULT_IF_AND_IF(core::STATUS_CODE_SUCCESS, core::STATUS_CODE_NOT_FOUND,!=, core::XmlHelper::readParameter(settingsHandle, "StandaloneSleepTime", m_standaloneSleep));
     }
     
     //-------------------------------------------------------------------------------------------------
@@ -422,6 +434,21 @@ namespace dqm4hep {
       appEvent->setPriority(ModuleApplication::PROCESS_CALL);
       m_eventLoop.postEvent(appEvent);
       m_currentNQueuedEvents++;
+    }
+    
+    
+    void ModuleApplication::setElementsRunNumber(core::Run &run) {
+      m_monitorElementManager->iterate<OnlineElement>([&](OnlineElementPtr monitorElement){
+        monitorElement->setRunNumber(run.runNumber());
+        return true;
+      });
+    }
+    
+    
+    void ModuleApplication::postStandaloneProcess() {
+      auto *processEvent = new StoreEvent<core::TimePoint>(AppEvent::PROCESS_EVENT, core::now());
+      processEvent->setPriority(ModuleApplication::PROCESS_CALL);
+      m_eventLoop.postEvent(processEvent);
     }
 
   }

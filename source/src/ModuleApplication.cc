@@ -180,7 +180,7 @@ namespace dqm4hep {
             THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, m_monitorElementManager->runQualityTests(reportStorage));
             // TODO send monitor element to collector
           }
-          catch(StatusCodeException &exception) {
+          catch(core::StatusCodeException &exception) {
             dqm_error( "Error caught at end of cycle: {0}", exception.getStatusCode() );
           }
         }

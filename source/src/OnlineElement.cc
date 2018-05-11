@@ -184,8 +184,8 @@ namespace dqm4hep {
 
     //-------------------------------------------------------------------------------------------------
 
-    core::StatusCode OnlineElement::runQualityTest(const std::string &name, core::QReport &report) {
-      RETURN_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, core::MonitorElement::runQualityTest(name, report));
+    core::StatusCode OnlineElement::runQualityTest(const std::string &qname, core::QReport &report) {
+      RETURN_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, core::MonitorElement::runQualityTest(qname, report));
       m_reports[report.m_qualityTestName] = report;
       return core::STATUS_CODE_SUCCESS;
     }
@@ -203,19 +203,19 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
-    void OnlineElement::toJson(core::json &object) const {
-      core::MonitorElement::toJson(object);
-      object["run"] = m_runNumber;
-      object["collector"] = m_collectorName;
-      object["module"] = m_moduleName;
-      object["description"] = m_description;
+    void OnlineElement::toJson(core::json &obj) const {
+      core::MonitorElement::toJson(obj);
+      obj["run"] = m_runNumber;
+      obj["collector"] = m_collectorName;
+      obj["module"] = m_moduleName;
+      obj["description"] = m_description;
       core::json reports = {};
       for(auto report : m_reports) {
         core::json jreport;
         report.second.toJson(jreport);
         reports[report.first] = jreport;
       }
-      object["reports"] = reports;
+      obj["reports"] = reports;
     }
     
     //-------------------------------------------------------------------------------------------------

@@ -24,6 +24,7 @@ fi
 ldd ./lib/*.so
 ldd ./bin/*
 
+export DIM_DNS_NODE=localhost
 $PWD/../dependencies/dqm4hep-net/bin/dns &
 
 ctest -V

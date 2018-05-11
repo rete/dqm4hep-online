@@ -45,9 +45,9 @@ namespace dqm4hep {
       TestStandaloneModule() = default;
       ~TestStandaloneModule() = default;
     private:
-      std::mt19937                 m_rndGen;
-      std::normal_distribution<>   m_temperatureDistribution;
-      std::normal_distribution<>   m_pressureDistribution;
+      std::mt19937                 m_rndGen{};
+      std::normal_distribution<>   m_temperatureDistribution{};
+      std::normal_distribution<>   m_pressureDistribution{};
       float                        m_meanT = {24};
       float                        m_rmsT = {1};
       float                        m_meanP = {1024};

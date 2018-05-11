@@ -65,6 +65,9 @@ namespace dqm4hep {
         STANDALONE
       };
       
+      ModuleApplication(const ModuleApplication&) = delete;
+      ModuleApplication& operator=(const ModuleApplication&) = delete;
+      
       /** 
        *  @brief  Constructor
        */

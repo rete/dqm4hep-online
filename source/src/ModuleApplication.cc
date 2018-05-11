@@ -471,16 +471,16 @@ namespace dqm4hep {
       }
       for(auto &element : jsubscription) {
         auto path = element.value<std::string>("path", "");
-        auto name = element.value<std::string>("name", "");
+        auto eltName = element.value<std::string>("name", "");
         auto subscribe = element.value<bool>("sub", false);
         
         OnlineElementPtr monitorElement = nullptr;
-        if(core::STATUS_CODE_SUCCESS != m_monitorElementManager->getMonitorElement(path, name, monitorElement)) {
-          dqm_warning( "While updating subscription list: couldn't find element path'{0}', name '{1}'", path, name );
+        if(core::STATUS_CODE_SUCCESS != m_monitorElementManager->getMonitorElement(path, eltName, monitorElement)) {
+          dqm_warning( "While updating subscription list: couldn't find element path'{0}', name '{1}'", path, eltName );
           continue;
         }
         monitorElement->setSubscribed(subscribe);
-        dqm_info( "Monitor element: path {0}, name {1} has been {2}subscribed", path, name, subscribe ? "" : "un-" );
+        dqm_info( "Monitor element: path {0}, name {1} has been {2}subscribed", path, eltName, subscribe ? "" : "un-" );
       }
     }
     

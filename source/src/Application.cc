@@ -127,7 +127,7 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
 
     void Application::sendStat(const std::string &entryName, double stats) {
-      if(not statsEnabled()) {
+      if(not statsEnabled() or noServer()) {
         return;
       }
       core::json object = m_statistics[entryName];
@@ -160,6 +160,22 @@ namespace dqm4hep {
     }
     
     //-------------------------------------------------------------------------------------------------
+    
+    void Application::setNoServer(bool nosrv) {
+      if(initialized()) {
+        dqm_error( "Application::enableStats(): Couldn't enable/disable stats, app is already initialized !" );
+        throw core::StatusCodeException(core::STATUS_CODE_NOT_ALLOWED);
+      }
+      m_noServer = nosrv;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    bool Application::noServer() const {
+      return m_noServer;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
 
     void Application::init(int argc, char **argv) {
       if(initialized()) {
@@ -174,25 +190,35 @@ namespace dqm4hep {
         throw core::StatusCodeException(core::STATUS_CODE_FAILURE);
       }
       
-      // configure logger
-      m_logger = core::Logger::createLogger(this->type() + ":" + this->name(), {
-        core::Logger::coloredConsole(),
-        RemoteLogger::make_shared()
-      });
+      if(noServer()) {
+        // configure logger
+        m_logger = core::Logger::createLogger(this->type() + ":" + this->name(), {
+          core::Logger::coloredConsole()
+        });        
+      }
+      else {
+        // configure logger
+        m_logger = core::Logger::createLogger(this->type() + ":" + this->name(), {
+          core::Logger::coloredConsole(),
+          RemoteLogger::make_shared()
+        });
+      }
       core::Logger::setMainLogger(m_logger->name());
       m_logger->set_level(m_logLevel);
         
-      // configure server
-      dqm_debug( "Creating server ..." );
-      m_server = std::make_shared<net::Server>(OnlineRoutes::Application::serverName(this->type(), this->name()));
-      m_pAppStateService = m_server->createService(OnlineRoutes::Application::state(this->type(), this->name()));
+      if(not noServer()) {
+        // configure server
+        dqm_debug( "Creating server ..." );
+        m_server = std::make_shared<net::Server>(OnlineRoutes::Application::serverName(this->type(), this->name()));
+        m_pAppStateService = m_server->createService(OnlineRoutes::Application::state(this->type(), this->name()));
 
-      if(m_statsEnabled) {
-        dqm_debug( "Creating internal app stats ..." );
-        createInternalStats();
+        if(m_statsEnabled) {
+          dqm_debug( "Creating internal app stats ..." );
+          createInternalStats();
+        }
+        m_server->onClientExit().connect(this, &Application::sendClientExitEvent);      
       }
-      m_server->onClientExit().connect(this, &Application::sendClientExitEvent);
-  
+
       try {
         dqm_info( "User init ..." );
         this->onInit();        
@@ -210,8 +236,10 @@ namespace dqm4hep {
     
     int Application::exec() {
       m_running = true;
-      m_server->start();
-      sleep(1);
+      if(not noServer()) {
+        m_server->start();
+        sleep(1);        
+      }
       this->setState("Running");
       
       try {
@@ -226,7 +254,7 @@ namespace dqm4hep {
       int returnCode(0);
       
       try {
-        if(m_statsEnabled) {
+        if(statsEnabled() and not noServer()) {
           // send statistics every 5 seconds
           dqm_info( "Statistics enabled. Creating timer (5 secs) ..." );
           m_appStatTimer = createTimer();
@@ -240,7 +268,9 @@ namespace dqm4hep {
         returnCode = m_eventLoop.exec();
         dqm_info( "Exiting event loop ..." );
         m_eventLoop.disconnectOnEvent(this);
-        m_server->onClientExit().disconnectAll();
+        if(not noServer()){
+          m_server->onClientExit().disconnectAll();          
+        }
         this->onStop();
       }
       catch(...) {
@@ -275,6 +305,9 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
     
     void Application::queuedSubscribe(const std::string &serviceName, int priority, int maxNEvents) {
+      if(noServer()){
+        throw core::StatusCodeException(core::STATUS_CODE_NOT_ALLOWED);
+      }
       auto findIter = m_serviceHandlerPtrMap.find(serviceName);
       
       if(m_serviceHandlerPtrMap.end() != findIter) {
@@ -290,6 +323,9 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
     
     net::Service *Application::createService(const std::string &sname) {
+      if(noServer()){
+        throw core::StatusCodeException(core::STATUS_CODE_NOT_ALLOWED);
+      }
       if(not m_server) {
         dqm_error( "Application::createService(): couldn't create service '{0}', server is not yet allocated", sname );
         throw core::StatusCodeException(core::STATUS_CODE_NOT_INITIALIZED);
@@ -300,6 +336,9 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
     
     void Application::createQueuedCommand(const std::string &commandName, int priority, int maxNEvents) {
+      if(noServer()){
+        throw core::StatusCodeException(core::STATUS_CODE_NOT_ALLOWED);
+      }
       if(not m_server) {
         dqm_error( "Application::createQueuedCommand(): couldn't create command handler '{0}', server is not yet allocated", commandName );
         throw core::StatusCodeException(core::STATUS_CODE_NOT_INITIALIZED);
@@ -320,12 +359,18 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
     
     int Application::serverClientId() const {
+      if(noServer()){
+        throw core::StatusCodeException(core::STATUS_CODE_NOT_ALLOWED);
+      }
       return m_server->clientId();
     }
     
     //-------------------------------------------------------------------------------------------------
     
     void Application::sendClientExitEvent(int id) {
+      if(noServer()){
+        throw core::StatusCodeException(core::STATUS_CODE_NOT_ALLOWED);
+      }
       auto event = new StoreEvent<int>(AppEvent::CLIENT_EXIT, id);
       m_eventLoop.sendEvent(event);
     }

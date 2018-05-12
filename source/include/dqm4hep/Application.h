@@ -177,6 +177,21 @@ namespace dqm4hep {
       bool statsEnabled() const;
       
       /**
+       *  @brief  Enable or disable running the application server.
+       *
+       *  Some application might not need to setup a server to run
+       *  and can be disabled by calling setNoServer(true) in the ctor or in parseCmdLine()
+       *  
+       *  @param  nosrv whether to enable / disable the server 
+       */
+      void setNoServer(bool nosrv);
+      
+      /**
+       *  @brief  Whether the server has been disabled
+       */
+      bool noServer() const;
+      
+      /**
        *  @brief  Initialize the application.
        *          Calls userInit()
        *  
@@ -464,6 +479,8 @@ namespace dqm4hep {
       bool                         m_initialized = {false};
       /// Whether the application statistics are available 
       bool                         m_statsEnabled = {true};
+      /// 
+      bool                         m_noServer = {false};
       /// The main server interface of the application
       ServerPtr                    m_server = {nullptr};
       /// The service for application state, updated when the state changes

@@ -66,6 +66,7 @@ public:
     setName(appName);
     setLogLevel(spdlog::level::debug);
     enableStats(false);
+    setNoServer(true);
   }
 
   virtual void onStart() override {
@@ -83,6 +84,7 @@ class TimeoutTestApp : public TestApplication {
 public:
   TimeoutTestApp() :
     TestApplication("timeout", 3, 2, 10) {  
+    setNoServer(true);
   }
   
   void onEvent(AppEvent *pAppEvent) override {
@@ -111,6 +113,7 @@ class NormalTestApp : public TestApplication {
 public:
   NormalTestApp() :
     TestApplication("normal", 2, 0, 10) {  
+    setNoServer(true);
   }
   
   void onEvent(AppEvent *pAppEvent) override {
@@ -138,7 +141,8 @@ public:
 class NoTimeoutTestApp : public TestApplication {
 public:
   NoTimeoutTestApp() :
-    TestApplication("notimeout", 3, 2, 10) {  
+    TestApplication("notimeout", 3, 2, 10) { 
+    setNoServer(true);
   }
   NoTimeoutTestApp(const NoTimeoutTestApp&) = delete;
   NoTimeoutTestApp& operator=(const NoTimeoutTestApp&) = delete;

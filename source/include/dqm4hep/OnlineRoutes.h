@@ -199,6 +199,35 @@ namespace dqm4hep {
          */
         static const std::string subscribe(const std::string &moduleName);
       };
+      
+      //-------------------------------------------------------------------------------------------------
+      //-------------------------------------------------------------------------------------------------
+      
+      /**
+      *  @brief  MonitorElementCollector class
+      *          Defines routes related to monitor element collector
+       */
+      class MonitorElementCollector {
+      public:
+        /**
+         *  @brief  Get the application type
+         */
+        static std::string applicationType();
+        
+        /**
+         *  @brief  Get the monitor element collector request name to register a new source
+         * 
+         *  @param  collector the collector name
+         */
+        static std::string registerSource(const std::string &collector);
+        
+        /**
+         *  @brief  Get the monitor element collector command name to unregister a new source
+         * 
+         *  @param  collector the collector name
+         */
+        static std::string unregisterSource(const std::string &collector);
+      };
     };
 
   }

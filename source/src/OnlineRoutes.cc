@@ -144,6 +144,23 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     //-------------------------------------------------------------------------------------------------
+  
+    std::string OnlineRoutes::MonitorElementCollector::applicationType() {
+      return "mecol";
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    std::string OnlineRoutes::MonitorElementCollector::registerSource(const std::string &collector) {
+      return OnlineRoutes::Application::serverName(applicationType(), collector) + "/register";
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
+    std::string OnlineRoutes::MonitorElementCollector::unregisterSource(const std::string &collector) {
+      return OnlineRoutes::Application::serverName(applicationType(), collector) + "/unregister";
+    }
+  
   }
 
 } 

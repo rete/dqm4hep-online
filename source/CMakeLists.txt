@@ -27,6 +27,7 @@ SET( SRC_FILES ${SRC_FILES} src/ModuleApi.cc )
 SET( SRC_FILES ${SRC_FILES} src/Cycle.cc )
 SET( SRC_FILES ${SRC_FILES} src/ModuleApplication.cc )
 SET( SRC_FILES ${SRC_FILES} src/OnlineElement.cc )
+SET( SRC_FILES ${SRC_FILES} src/MonitorElementCollector.cc )
 set( SRC_FILES ${SRC_FILES} src/plugins/TestAnalysisModule.cc )
 set( SRC_FILES ${SRC_FILES} src/plugins/TestStandaloneModule.cc )
 

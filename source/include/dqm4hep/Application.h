@@ -479,7 +479,9 @@ namespace dqm4hep {
       bool                         m_initialized = {false};
       /// Whether the application statistics are available 
       bool                         m_statsEnabled = {true};
-      /// 
+      /// The application statistics
+      core::ProcessStats           m_stats = {};
+      ///
       bool                         m_noServer = {false};
       /// The main server interface of the application
       ServerPtr                    m_server = {nullptr};

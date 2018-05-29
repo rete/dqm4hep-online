@@ -31,6 +31,9 @@
 #include "dqm4hep/RemoteLogger.h"
 #include "dqm4hep/Logging.h"
 
+// -- system headers
+#include <sys/time.h>
+
 namespace dqm4hep {
 
   namespace online {
@@ -378,15 +381,26 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
     
     void Application::sendAppStats() {
-      core::MemoryStats stats;
-      core::memStats(stats);
-      dqm_debug( "Sending internal app stats ..." );
-      sendStat("VmProc", stats.vmproc/(1024.));
-      sendStat("VmTotal", (stats.vmproc/(stats.vmtot*1.))*(100./1024));
-      sendStat("VmInUse", (stats.vmproc/(stats.vmused*1.))*(100./1024));
-      sendStat("RSSProc", stats.rssproc/(1024.));
-      sendStat("RSSTotal", (stats.rssproc/(stats.rsstot*1.))*(100./1024));
-      sendStat("RSSInUse", (stats.rssproc/(stats.rssused*1.))*(100./1024));
+      core::MemoryStats memInfo;
+      core::memStats(memInfo);
+      core::procStats(m_stats);
+
+      core::dqm_long procVm = m_stats.vm/1024.;   // in MB
+      core::dqm_long procRss = m_stats.rss/1024.; // in MB
+
+      dqm_debug("Sending internal app stats ..." );
+      sendStat("VmProc", procVm);
+      sendStat("VmTotal", (procVm/(memInfo.vmTot*1.))*100.);
+      sendStat("VmInUse", (procVm/(memInfo.vmUsed*1.))*100.);
+
+      sendStat("RSSProc", procRss);
+      sendStat("RSSTotal", (procRss/(memInfo.rssTot*1.))*100.);
+      sendStat("RSSInUse", (procRss/(memInfo.rssUsed*1.))*100.);
+
+      sendStat("CpuUser", procRss);
+      sendStat("CpuSys", (procRss/(memInfo.rssTot*1.))*100.);
+      sendStat("CpuTotal", (procRss/(memInfo.rssUsed*1.))*100.);
+
       dqm_debug( "Sending internal app stats ... OK" );
     }
     
@@ -402,6 +416,25 @@ namespace dqm4hep {
       createStatsEntry("RSSProc", "Mo", "The current resident set size memory in use by the application (unit Mo)");
       createStatsEntry("RSSTotal", "%", "The current resident set size memory percentage in use by the application compare to the total available on the host (unit %)");
       createStatsEntry("RSSInUse", "%", "The current resident set size memory percentage in use by the application compare to the total used by the running processes (unit %)");
+
+      // Cpu
+      createStatsEntry("CpuUser", "%", "The current user cpu load of the application (unit %)");
+      createStatsEntry("CpuSys", "%", "The current system cpu load of the application (unit %)");
+      createStatsEntry("CpuTotal", "%", "The current total cpu load of the application (unit %)");
+
+      // Last Update
+      createStatsEntry("LastUpdate", "%Y-%m-%d %H:%M:%S", "The time the last statistics update occured (unit %Y-%m-%d %H:%M:%S)");
+
+      // Network
+      // createStatsEntry("CPU", "%", "The current resident set size memory in use by the application (unit Mo)");
+      // createStatsEntry("CPU", "%", "The current resident set size memory percentage in use by the application compare to the total available on the host (unit %)");
+      // createStatsEntry("CPU", "%", "The current resident set size memory percentage in use by the application compare to the total used by the running processes (unit %)");
+
+      // Initialise first reading
+      struct timeval timeStart;
+      gettimeofday(&timeStart, NULL);
+      m_stats.lastPollTime = timeStart;
+      core::procStats(m_stats);
     }
     
     //-------------------------------------------------------------------------------------------------

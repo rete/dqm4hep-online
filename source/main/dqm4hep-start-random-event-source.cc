@@ -43,6 +43,7 @@
 #include <iostream>
 #include <atomic>
 #include <signal.h>
+#include <random>
 
 using namespace std;
 using namespace dqm4hep::online;

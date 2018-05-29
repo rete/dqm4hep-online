@@ -34,7 +34,7 @@ fi
 cd ../..
 
 # install dqm4hep-core
-git clone https://github.com/dqm4hep/dqm4hep-core.git
+git clone -b refactor-Stats https://github.com/apingault/dqm4hep-core.git
 cd dqm4hep-core
 mkdir -p build && cd build
 cmake -DDQM4HEP_DOXYGEN_DOC=OFF -Dxdrstream_DIR=$PWD/../../xdrstream/lib/cmake -DCMAKE_MODULE_PATH=$PWD/../../dqm4hep/cmake -DDQM4HEP_TESTING=OFF -DDQM4HEP_WARNING_AS_ERROR=ON -DDQM4HEP_DEV_WARNINGS=ON ..

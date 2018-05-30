@@ -56,7 +56,7 @@ cd ../..
 git clone https://github.com/dqm4hep/dqm4hep-net.git
 cd dqm4hep-net
 mkdir -p build && cd build
-cmake -DDQM4HEP_DOXYGEN_DOC=OFF -Dxdrstream_DIR=$PWD/../../xdrstream -DCMAKE_MODULE_PATH=$PWD/../../dqm4hep/cmake -DDQMCore_DIR=$PWD/../../dqm4hep-core -DDQM4HEP_TESTING=OFF -DDQM4HEP_WARNING_AS_ERROR=OFF -DDQM4HEP_DEV_WARNINGS=OFF ..
+cmake -DDQM4HEP_DOXYGEN_DOC=OFF -DCMAKE_MODULE_PATH=$PWD/../../dqm4hep/cmake -DDQMCore_DIR=$PWD/../../dqm4hep-core/lib/cmake -DDQM4HEP_TESTING=OFF -DDQM4HEP_WARNING_AS_ERROR=OFF -DDQM4HEP_DEV_WARNINGS=OFF ..
 
 if [ $? -ne 0 ]; then
     echo "Failed to run dqm4hep-net cmake"

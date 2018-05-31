@@ -1,4 +1,15 @@
-<img src="https://travis-ci.org/DQM4HEP/dqm4hep-online.svg?branch=master" align="left" />
+<a href="https://travis-ci.org/DQM4HEP/dqm4hep-online">
+  <img src="https://travis-ci.org/DQM4HEP/dqm4hep-online.svg?branch=master" align="left" /> 
+</a> &nbsp;
+<a href="https://scan.coverity.com/projects/dqm4hep-dqm4hep">
+  <img src="https://scan.coverity.com/projects/13354/badge.svg" align="left" /> &nbsp;
+</a>
+<a href="http://dqm4hep.readthedocs.io/">
+  <img src="https://readthedocs.org/projects/dqm4hep/badge/?version=latest" align="left" /> &nbsp;
+</a>
+<a href="https://dqm4hep.github.io/dqm4hep-doxygen/doxygen/dqm4hep-online/master/index.html">
+  <img src="https://codedocs.xyz/doxygen/doxygen.svg" align="left"/>
+</a> </br>
 
 # DQM4HEP Online library, a Data Quality Monitoring framework for High Energy Physics
 

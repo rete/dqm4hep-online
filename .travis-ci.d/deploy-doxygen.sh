@@ -43,7 +43,7 @@ cd "$TRAVIS_BUILD_DIR"
 
 source dependencies/root/bin/thisroot.sh
 
-cd build
+cd dqm4hep/build
 
 # activate doxygen building target
 cmake -DDQM4HEP_DOXYGEN_DOC=ON ..
@@ -57,7 +57,7 @@ fi
 make install
 
 if [ $? -ne 0 ]; then
-    echo "Failed to run make install"
+    echo "Failed to run make doc"
     exit 1
 fi
 
@@ -77,7 +77,7 @@ cd doxygen/${doxygenDirectory}
 rm -rf *
 
 # copy the new one in place
-cp -r $TRAVIS_BUILD_DIR/build/docbuild/DQMOnline/html/* .
+cp -r $TRAVIS_BUILD_DIR/dqm4hep/doc/DQMOnline/html/* .
 
 # commit the new doc
 git add ./*

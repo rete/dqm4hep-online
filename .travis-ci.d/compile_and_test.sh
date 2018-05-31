@@ -4,10 +4,12 @@ ls -la
 
 source dependencies/root/bin/thisroot.sh
 
-mkdir -p build
+git clone https://github.com/dqm4hep/dqm4hep.git
+cd dqm4hep
+mkdir build
 cd build
 
-cmake -DDQM4HEP_DOXYGEN_DOC=OFF -DCMAKE_MODULE_PATH=$PWD/../dependencies/dqm4hep/cmake -DDQMCore_DIR=$PWD/../dependencies/dqm4hep-core/lib/cmake -DDQMNet_DIR=$PWD/../dependencies/dqm4hep-net/lib/cmake -DDQM4HEP_TESTING=ON -DDQM4HEP_WARNING_AS_ERROR=ON -DDQM4HEP_DEV_WARNINGS=ON ..
+cmake -DDQM4HEP_USE_MASTER=ON -DDQM4HEP_DOXYGEN_DOC=OFF -DDQM4HEP_TESTING=ON -DDQM4HEP_WARNING_AS_ERROR=ON -DDQM4HEP_DEV_WARNINGS=ON -DDQMOnline_repository=$TRAVIS_BUILD_DIR -DDQMOnline_version=$TRAVIS_COMMIT ..
 
 if [ $? -ne 0 ]; then
     echo "Failed to run cmake"
@@ -18,18 +20,5 @@ make install VERBOSE=1
 
 if [ $? -ne 0 ]; then
     echo "Failed to run make"
-    exit 1
-fi
-
-ldd ./lib/*.so
-ldd ./bin/*
-
-export DIM_DNS_NODE=localhost
-$PWD/../dependencies/dqm4hep-net/bin/dns &
-
-ctest -V
-
-if [ $? -ne 0 ]; then
-    echo "Failed to run cmake tests"
     exit 1
 fi

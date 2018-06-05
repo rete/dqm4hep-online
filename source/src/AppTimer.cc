@@ -69,7 +69,7 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
-    core::Signal<void> &AppTimer::onTimeout() {
+    core::Signal<> &AppTimer::onTimeout() {
       return m_signal;
     }
     

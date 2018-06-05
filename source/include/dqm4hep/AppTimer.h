@@ -86,7 +86,7 @@ namespace dqm4hep {
       /**
        *  @brief  Get the timeout signal
        */
-      core::Signal<void> &onTimeout();
+      core::Signal<> &onTimeout();
       
       /**
        *  @brief  Start the timer
@@ -111,7 +111,7 @@ namespace dqm4hep {
       /// The timer interval (unit milliseconds)
       std::atomic_uint             m_interval = {0};
       /// The timer timeout signal
-      core::Signal<void>           m_signal = {};
+      core::Signal<>               m_signal = {};
       /// Whether the timer is active
       std::atomic_bool             m_active = {false};
       /// The time point when the timer was started

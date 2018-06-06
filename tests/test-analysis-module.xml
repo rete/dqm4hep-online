@@ -1,7 +1,9 @@
 <dqm4hep>
   
   <!-- Application settings -->
-  <settings>
+  <settings mode="Online">
+    <parameter name="FileReader"> LcioFileReader </parameter>
+    <parameter name="EventFileName"> /data/calo_gero_I12548.slcio </parameter>
     <parameter name="CyclePeriod"> 5 </parameter>
     <parameter name="CycleCounter"> 0 </parameter>
     <parameter name="CycleTimeout"> 2 </parameter>

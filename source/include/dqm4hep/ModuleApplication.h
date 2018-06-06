@@ -39,6 +39,7 @@
 #include "dqm4hep/Module.h"
 #include "dqm4hep/EventCollectorClient.h"
 #include "dqm4hep/MonitorElementManager.h"
+#include "dqm4hep/FileReader.h"
 
 // -- tclap headers
 #include "tclap/CmdLine.h"
@@ -59,10 +60,16 @@ namespace dqm4hep {
       /**
        *  @brief  Mode enumerator
        */
-      enum Mode {
-        UNDEFINED,
+      enum ModuleType {
+        UNDEFINED_TYPE,
         ANALYSIS,
         STANDALONE
+      };
+      
+      enum RunningMode {
+        UNDEFINED_MODE,
+        ONLINE,
+        FILE_READER
       };
       
       ModuleApplication(const ModuleApplication&) = delete;
@@ -100,9 +107,14 @@ namespace dqm4hep {
       const std::string &moduleType() const;
       
       /**
-       *  @brief  Get the application mode
+       *  @brief  Get the application running mode
        */
-      Mode mode() const;
+      RunningMode appRunningMode() const;
+      
+      /**
+       *  @brief  Get the application module type
+       */
+      ModuleType appModuleType() const;
       
       /**
        *  @brief  Get the run control
@@ -131,28 +143,35 @@ namespace dqm4hep {
       /**
        *  @brief  Configure the user module
        *
-       *  @param element the xml element
+       *  @param  element the xml element
        */
       void configureModule(core::TiXmlElement *element);
       
       /**
        *  @brief  Configure the application cycle
        *
-       *  @param element the xml element
+       *  @param  element the xml element
        */
       void configureCycle(core::TiXmlElement *element);
       
       /**
        *  @brief  Configure the network interface
        *
-       *  @param element the xml element
+       *  @param  element the xml element
        */
       void configureNetwork(core::TiXmlElement *element);
       
       /**
+       *  @brief  Configure the file reader
+       *
+       *  @param  element the xml element
+       */
+      void configureFileReader(core::TiXmlElement *element);
+      
+      /**
        *  @brief  Process the start of run service update
        *
-       *  @param svc the service update content
+       *  @param  svc the service update content
        */      
       void processStartOfRun(ServiceUpdateEvent *svc);
       
@@ -216,7 +235,9 @@ namespace dqm4hep {
       /// The application run control
       RunControl                   m_runControl = {};
       /// The application running mode
-      Mode                         m_mode = {UNDEFINED};
+      RunningMode                  m_appRunningMode = {UNDEFINED_MODE};
+      /// The application module type mode
+      ModuleType                   m_appModuleType = {UNDEFINED_TYPE};
       /// The command line argument object
       CmdLine                      m_cmdLine = {nullptr};
       /// The XML parser to parse the input steering file
@@ -241,6 +262,8 @@ namespace dqm4hep {
       MonitorElementManagerPtr     m_monitorElementManager = {nullptr};
       /// Whether the application for monitor element booking (state variable)
       bool                         m_allowBooking = {false};
+      /// The input file reader 
+      FileReaderPtr                m_fileReader = {nullptr};
     };
     
     //-------------------------------------------------------------------------------------------------

@@ -115,7 +115,7 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
     
     void ModuleApplication::onInit() {
-      dqm_info( "Module application mode set to {0}", m_mode );
+      dqm_info( "Module application running mode set to {0}", m_appRunningMode );
       m_standaloneTimer = createTimer();
       m_standaloneTimer->setInterval(m_standaloneSleep);
       m_standaloneTimer->setSingleShot(true);
@@ -124,18 +124,23 @@ namespace dqm4hep {
       m_runControl.onStartOfRun().connect(this, &ModuleApplication::setElementsRunNumber);
       m_runControl.onStartOfRun().connect(m_module.get(), &Module::startOfRun);      
       m_runControl.onEndOfRun().connect(m_module.get(), &Module::endOfRun);
-      queuedSubscribe(
-        OnlineRoutes::RunControl::sor(m_runControl.name()),
-        Priorities::START_OF_RUN
-      );
-      queuedSubscribe(
-        OnlineRoutes::RunControl::eor(m_runControl.name()),
-        Priorities::END_OF_RUN
-      );
+      if(ONLINE == appRunningMode()) {
+        queuedSubscribe(
+          OnlineRoutes::RunControl::sor(m_runControl.name()),
+          Priorities::START_OF_RUN
+        );
+        queuedSubscribe(
+          OnlineRoutes::RunControl::eor(m_runControl.name()),
+          Priorities::END_OF_RUN
+        );        
+      }
       createQueuedCommand(
         OnlineRoutes::ModuleApplication::subscribe(name()),
         Priorities::SUBSCRIBE
-      );      
+      );
+      if(FILE_READER == appRunningMode()) {
+        m_fileReader->onEventRead().connect(this, &ModuleApplication::receiveEvent);
+      }
     }
     
     //-------------------------------------------------------------------------------------------------
@@ -163,18 +168,36 @@ namespace dqm4hep {
         auto eorEvent = dynamic_cast<StoreEvent<core::Run>*>(appEvent);
         auto run = eorEvent->data();
         m_runControl.endCurrentRun(run.parameters());
+        if(FILE_READER == appRunningMode()) {
+          dqm_info( "End of run processed. Exiting application ..." );
+          this->exit(0);
+        }
       }
       // process event received from the event collector
-      if(AppEvent::PROCESS_EVENT == appEvent->type() and ModuleApplication::ANALYSIS == m_mode) {
+      if(AppEvent::PROCESS_EVENT == appEvent->type() and ANALYSIS == appModuleType()) {  
+        if(m_currentNQueuedEvents != 0) {
+          m_currentNQueuedEvents--;
+        }
         if(m_runControl.isRunning()) {
           auto procEvent = dynamic_cast<StoreEvent<core::EventPtr>*>(appEvent);
           auto anaModule = moduleAs<AnalysisModule>();
           anaModule->process(procEvent->data());
           m_cycle.incrementCounter();
+          if(FILE_READER == appRunningMode()) {
+            auto status = m_fileReader->readNextEvent();
+            // end of file ?
+            if(status == core::STATUS_CODE_OUT_OF_RANGE) {
+              processEndOfRun();
+            }
+            else if(status != core::STATUS_CODE_SUCCESS) {
+              dqm_error( "Error while reading event: file reader returned status '{0}'", core::statusCodeToString(status) );
+              this->exit(1);
+            }
+          }
         }
       }
       // generic loop
-      if(AppEvent::PROCESS_EVENT == appEvent->type() and ModuleApplication::STANDALONE == m_mode) {
+      if(AppEvent::PROCESS_EVENT == appEvent->type() and STANDALONE == appModuleType()) {
         auto standModule = moduleAs<StandaloneModule>();
         standModule->process();
         m_cycle.incrementCounter();
@@ -209,13 +232,13 @@ namespace dqm4hep {
           }
         }
         // always restart a new cycle for standalone modules
-        if(ModuleApplication::STANDALONE == m_mode) {
+        if(STANDALONE == appModuleType()) {
           m_module->startOfCycle();
-          m_cycle.startCycle(true);           
+          m_cycle.startCycle(true);
         }
         // forced end is a synonym of end of run for analysis modules
         // do not restart a cycle in this case
-        if(ModuleApplication::ANALYSIS == m_mode and not condition.m_forcedEnd) {
+        if(ANALYSIS == appModuleType() and not condition.m_forcedEnd) {
           m_module->startOfCycle();
           m_cycle.startCycle(true); 
         }
@@ -225,32 +248,45 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
     
     void ModuleApplication::onStart() {
-      // get run control status in case it is already running
-      sendRequest(OnlineRoutes::RunControl::status(m_runControl.name()), net::Buffer(), [this](const net::Buffer &response){
-        core::json statusJson = core::json::parse(response.begin(), response.end());
-        bool rcRunning = statusJson.value<bool>("running", false);
-        if(rcRunning) {
-          core::json runJson = statusJson.value<core::json>("run", core::json({}));
-          core::Run run;
-          run.fromJson(runJson);
-          m_runControl.startNewRun(run);
-        }
-      });
-      if(ModuleApplication::STANDALONE == m_mode) {
+      if(ONLINE == appRunningMode()) {
+        // get run control status in case it is already running
+        sendRequest(OnlineRoutes::RunControl::status(m_runControl.name()), net::Buffer(), [this](const net::Buffer &response){
+          core::json statusJson = core::json::parse(response.begin(), response.end());
+          bool rcRunning = statusJson.value<bool>("running", false);
+          if(rcRunning) {
+            core::json runJson = statusJson.value<core::json>("run", core::json({}));
+            core::Run run;
+            run.fromJson(runJson);
+            m_runControl.startNewRun(run);
+          }
+        });        
+      }
+      if(STANDALONE == appModuleType()) {
+        m_module->startOfCycle();
+        m_cycle.startCycle(true);
+        m_standaloneTimer->start();
+      }
+      else if(ANALYSIS == appModuleType() and m_runControl.isRunning()) {
         m_module->startOfCycle();
         m_cycle.startCycle(true);
       }
-      else if(ModuleApplication::ANALYSIS == m_mode and m_runControl.isRunning()) {
+      if(FILE_READER == appRunningMode()) {
+        core::Run run;
+        THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, m_fileReader->runInfo(run));
+        m_runControl.startNewRun(run);
         m_module->startOfCycle();
-        m_cycle.startCycle(true);
+        m_cycle.startCycle();
+        // read first will post an event in event loop
+        THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, m_fileReader->readNextEvent());
       }
-      m_standaloneTimer->start();
     }
     
     //-------------------------------------------------------------------------------------------------
     
     void ModuleApplication::onStop() {
-      m_standaloneTimer->stop();
+      if(STANDALONE == appModuleType()) {
+        m_standaloneTimer->stop();
+      }
     }
     
     //-------------------------------------------------------------------------------------------------
@@ -273,8 +309,14 @@ namespace dqm4hep {
 
     //-------------------------------------------------------------------------------------------------
 
-    ModuleApplication::Mode ModuleApplication::mode() const {
-      return m_mode;
+    ModuleApplication::RunningMode ModuleApplication::appRunningMode() const {
+      return m_appRunningMode;
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+
+    ModuleApplication::ModuleType ModuleApplication::appModuleType() const {
+      return m_appModuleType;
     }
 
     //-------------------------------------------------------------------------------------------------
@@ -302,18 +344,36 @@ namespace dqm4hep {
       
       auto document = m_parser.document();
       const core::TiXmlHandle xmlHandle(document.RootElement());
-
       auto storageElement = xmlHandle.FirstChildElement("storage").Element();
+      auto settingsElement = xmlHandle.FirstChildElement("settings").Element();
+      auto moduleElement = xmlHandle.FirstChildElement("module").Element();
+
       if(nullptr != storageElement) {
         THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, m_monitorElementManager->parseStorage<OnlineElement>(storageElement));
       }
+                  
+      if(nullptr == settingsElement) {
+        dqm_error("parseSteeringFile: Missing <settings> section !");
+        throw core::StatusCodeException(core::STATUS_CODE_NOT_FOUND);
+      }
       
-      auto moduleElement = xmlHandle.FirstChildElement("module").Element();
+      // determine running mode
+      static core::StringVector possibleModes = {"Online", "File"}; 
+      std::string runningMode;
+      THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, core::XmlHelper::getAttribute(settingsElement, 
+        "mode", runningMode, [&](const std::string &value){
+        return (std::find(possibleModes.begin(), possibleModes.end(), value) != possibleModes.end());
+      }));
+      if(runningMode == "Online") {
+        m_appRunningMode = ONLINE;
+      }
+      else {
+        m_appRunningMode = FILE_READER;
+      }
       configureModule(moduleElement);
-      
-      auto settingsElement = xmlHandle.FirstChildElement("settings").Element();
       configureCycle(settingsElement);
       configureNetwork(settingsElement);
+      configureFileReader(settingsElement);
       
       core::TiXmlHandle settingsHandle(settingsElement);
       THROW_RESULT_IF_AND_IF(core::STATUS_CODE_SUCCESS, core::STATUS_CODE_NOT_FOUND,!=, core::XmlHelper::readParameter(settingsHandle, "StandaloneSleepTime", m_standaloneSleep));
@@ -340,13 +400,17 @@ namespace dqm4hep {
         throw core::StatusCodeException(core::STATUS_CODE_NOT_FOUND);
       }
       if(nullptr != dynamic_cast<AnalysisModule*>(m_module.get())) {
-        m_mode = ANALYSIS;
+        m_appModuleType = ANALYSIS;
       }
       else if(nullptr != dynamic_cast<StandaloneModule*>(m_module.get())) {
-        m_mode = STANDALONE;
+        m_appModuleType = STANDALONE;
       }
       else {
         dqm_error( "Undefined module type, must be AnalysisModule or StandaloneModule" );
+        throw core::StatusCodeException(core::STATUS_CODE_INVALID_PARAMETER);
+      }
+      if(m_appRunningMode == FILE_READER and m_appModuleType != ANALYSIS) {
+        dqm_error( "Application running in FileReader mode. Can run only module of type AnalysisModule" );
         throw core::StatusCodeException(core::STATUS_CODE_INVALID_PARAMETER);
       }
       m_module->setModuleApplication(this);
@@ -387,13 +451,15 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
     
     void ModuleApplication::configureNetwork(core::TiXmlElement *element) {
+      if(ONLINE != appRunningMode()) {
+        return;
+      }
       core::TiXmlHandle handle(element);
-      
       std::string runControlName;
       THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, core::XmlHelper::readParameter(handle, "RunControl", runControlName));
       m_runControl.setName(runControlName);
       
-      if(m_mode == ModuleApplication::ANALYSIS) {
+      if(ANALYSIS == appModuleType()) {
         std::string eventCollector;
         THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, core::XmlHelper::readParameter(handle, "EventCollector", eventCollector));
         THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, core::XmlHelper::readParameter(handle, "EventSource", m_eventSourceName));
@@ -406,30 +472,57 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
+    void ModuleApplication::configureFileReader(core::TiXmlElement *element) {
+      if(FILE_READER != appRunningMode()) {
+        return;
+      }
+      std::string fileReaderName, eventFileName;
+      int skipNEvents = 0;
+      core::TiXmlHandle handle(element);
+      THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, core::XmlHelper::readParameter(handle, "FileReader", fileReaderName));
+      m_fileReader = core::PluginManager::instance()->create<FileReader>(fileReaderName);
+      if(nullptr == m_fileReader) {
+        dqm_error( "Could not found file reader {0} in list of plugins", fileReaderName );
+        throw core::StatusCodeException(core::STATUS_CODE_NOT_FOUND);
+      }
+      dqm_info( "Loaded file reader plugin '{0}'", fileReaderName );
+      THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, core::XmlHelper::readParameter(handle, "EventFileName", eventFileName));
+      dqm_info( "Opening file: {0}", eventFileName );
+      THROW_RESULT_IF_AND_IF(core::STATUS_CODE_SUCCESS, core::STATUS_CODE_NOT_FOUND, !=, core::XmlHelper::readParameter(handle, "SkipNEvents", skipNEvents));
+      THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, m_fileReader->open(eventFileName));
+      if(0 != skipNEvents) {
+        dqm_info( "Will skip {0} first events from file", skipNEvents );
+        m_fileReader->skipNEvents(skipNEvents);
+      }
+      enableStats(false);
+    }
+    
+    //-------------------------------------------------------------------------------------------------
+    
     void ModuleApplication::processStartOfRun(ServiceUpdateEvent *svc) {
       core::json runJson = core::json::parse(svc->buffer().begin(), svc->buffer().end());
       core::Run run;
       run.fromJson(runJson);
       dqm_info( "Starting new run {0}", run.runNumber() );
       m_runControl.startNewRun(run);
-      if(ModuleApplication::ANALYSIS == m_mode) {
+      if(ANALYSIS == appModuleType()) {
         m_module->startOfCycle();
         m_cycle.startCycle();
-      }
-      if(ModuleApplication::ANALYSIS == m_mode) {
-        m_eventCollectorClient->startEventUpdates(m_eventSourceName);
+        if(ONLINE == appRunningMode()) {
+          m_eventCollectorClient->startEventUpdates(m_eventSourceName);          
+        }
       }
     }
     
     //-------------------------------------------------------------------------------------------------
     
     void ModuleApplication::processEndOfRun() {
-      if(ModuleApplication::ANALYSIS == m_mode) {
+      if(ANALYSIS == appModuleType() and ONLINE == appRunningMode()) {
         m_eventCollectorClient->stopEventUpdates(m_eventSourceName);
       }
       // end cycle only for analysis module case
       // standalone modules never stops
-      if(ModuleApplication::ANALYSIS == m_mode) {
+      if(ANALYSIS == appModuleType()) {
         m_cycle.forceStopCycle(true, true);
       }
       auto eorEvent = new StoreEvent<core::Run>(AppEvent::END_OF_RUN, m_runControl.currentRun());

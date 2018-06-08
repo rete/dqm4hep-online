@@ -36,7 +36,7 @@ namespace dqm4hep {
     
     void EventCollectorClient::SourceInfo::receiveEvent(const net::Buffer &buffer) {
       core::EventPtr event = m_collectorClient->readEvent(buffer);
-      m_eventUpdateSignal.process(event);
+      m_eventUpdateSignal.emit(event);
     }
     
     //-------------------------------------------------------------------------------------------------

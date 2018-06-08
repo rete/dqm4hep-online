@@ -272,7 +272,7 @@ namespace dqm4hep {
         dqm_info( "Exiting event loop ..." );
         m_eventLoop.disconnectOnEvent(this);
         if(not noServer()){
-          m_server->onClientExit().disconnectAll();          
+          m_server->onClientExit().disconnect();          
         }
         this->onStop();
       }
@@ -495,7 +495,7 @@ namespace dqm4hep {
     
     void Application::NetworkHandler::sendServiceContent(const net::Buffer &buffer) {
       m_eventLoop.processFunction([&](){
-        m_sendContentSignal.process(buffer);
+        m_sendContentSignal.emit(buffer);
       });
     }
     
@@ -503,7 +503,7 @@ namespace dqm4hep {
     
     void Application::NetworkHandler::sendRequestEvent(const net::Buffer &request, net::Buffer &response) {
       m_eventLoop.processFunction([&](){
-        m_sendRequestSignal.process(request, response);
+        m_sendRequestSignal.emit(request, response);
       });
     }
     
@@ -540,7 +540,7 @@ namespace dqm4hep {
 
     void Application::NetworkHandler::sendCommandEvent(const net::Buffer &buffer) {
       m_eventLoop.processFunction([&](){
-        m_sendContentSignal.process(buffer);
+        m_sendContentSignal.emit(buffer);
       });
     }
     

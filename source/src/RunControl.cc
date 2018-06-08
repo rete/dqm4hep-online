@@ -80,7 +80,7 @@ namespace dqm4hep {
 
       m_run = run;
       m_running = true;
-      m_sorSignal.process(m_run);
+      m_sorSignal.emit(m_run);
       return STATUS_CODE_SUCCESS;
     }
 
@@ -98,7 +98,7 @@ namespace dqm4hep {
       for(auto &parameter : parameters)
         m_run.setParameter(parameter.first, parameter.second);
         
-      m_sorSignal.process(m_run);
+      m_sorSignal.emit(m_run);
       m_running = true;
       return STATUS_CODE_SUCCESS;
     }
@@ -115,7 +115,7 @@ namespace dqm4hep {
       for(auto &parameter : parameters)
         m_run.setParameter(parameter.first, parameter.second);
 
-      m_eorSignal.process(m_run);
+      m_eorSignal.emit(m_run);
       m_running = false;
       m_run.reset();
       return STATUS_CODE_SUCCESS;

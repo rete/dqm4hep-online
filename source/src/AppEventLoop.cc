@@ -168,7 +168,7 @@ namespace dqm4hep {
       try
       {
         std::lock_guard<std::recursive_mutex> lock(m_eventMutex);
-        m_onEventSignal.process(pAppEvent);
+        m_onEventSignal.emit(pAppEvent);
       }
       catch(core::StatusCodeException &except)
       {
@@ -181,7 +181,7 @@ namespace dqm4hep {
         }
         else
         {
-          m_onExceptionSignal.process(pAppEvent);
+          m_onExceptionSignal.emit(pAppEvent);
         }
       }
       catch(std::exception &except)
@@ -195,7 +195,7 @@ namespace dqm4hep {
         }
         else
         {
-          m_onExceptionSignal.process(pAppEvent);
+          m_onExceptionSignal.emit(pAppEvent);
         }
       }
       catch(...)
@@ -209,7 +209,7 @@ namespace dqm4hep {
         }
         else
         {
-          m_onExceptionSignal.process(pAppEvent);
+          m_onExceptionSignal.emit(pAppEvent);
         }
       }
       
@@ -253,7 +253,7 @@ namespace dqm4hep {
               if(timeoutReached) {
                 // process timer timeout in event loop
                 processFunction([timer](){
-                  timer->m_signal.process();
+                  timer->m_signal.emit();
                 });
                 // stop it if single shot
                 if(timer->singleShot()) {

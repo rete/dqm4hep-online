@@ -1,34 +1,28 @@
 <dqm4hep>
   
   <!-- Application settings -->
-  <settings mode="Online">
-    <parameter name="FileReader"> LcioFileReader </parameter>
-    <parameter name="EventFileName"> /data/calo_gero_I12548.slcio </parameter>
-    <parameter name="CyclePeriod"> 5 </parameter>
+  <settings mode="EventReader">
+    <parameter name="EventReader"> GenericEventXMLReader </parameter>
+    <parameter name="EventFileName"> /home/rete/soft/dqm4hep-core/tests/genevt_dummy_data.xml </parameter>
+    <parameter name="CyclePeriod"> 1 </parameter>
     <parameter name="CycleCounter"> 0 </parameter>
-    <parameter name="CycleTimeout"> 2 </parameter>
+    <parameter name="CycleTimeout"> 0 </parameter>
     <parameter name="RunControl"> TestRC </parameter>
     <parameter name="EventCollector"> TestEventCollector </parameter>
     <parameter name="EventSource"> TestSource </parameter>
     <parameter name="MonitorElementCollector"> TestMeCollector </parameter>
   </settings>
   
-  <!-- Quality tests to configure -->
-  <qtests>
-    <qtest type="MeanWithinExpectedTest" name="Test1" error="0.3" warning="0.9">
-      <parameter name="ExpectedMean" value="10"/>
-      <parameter name="MeanDeviationLower" value="8"/>
-      <parameter name="MeanDeviationUpper" value="12"/>
-    </qtest>
-  </qtests>
-  
-  <!-- Monitor element to book -->
-  <monitorElements>
-    <!-- This one is booked from the xml element description -->
-    <bookElement type="TH1D" path="/" name="TotalEnergy" title="The total reconstructed energy" nBinsX="151" minX="0" maxX="150">
-      <qtest name="Test1"/>
-    </bookElement>
-  </monitorElements>
+  <storage>
+    <style theme="polar"/>
+    <!-- Quality tests to configure -->
+    <qtests/>
+    <!-- Monitor element to book -->
+    <monitorElements>
+      <bookElement type="TH1D" path="/" name="TotalEnergy" title="The total reconstructed energy" nBinsX="151" minX="0" maxX="150">
+      </bookElement>
+    </monitorElements>
+  </storage>
   
   <!-- User module settings -->
   <module type="TestAnalysisModule" name="TestModule">

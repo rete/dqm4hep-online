@@ -138,8 +138,8 @@ namespace dqm4hep {
         OnlineRoutes::ModuleApplication::subscribe(name()),
         Priorities::SUBSCRIBE
       );
-      if(FILE_READER == appRunningMode()) {
-        m_fileReader->onEventRead().connect(this, &ModuleApplication::receiveEvent);
+      if(EVENT_READER == appRunningMode()) {
+        m_eventReader->onEventRead().connect(this, &ModuleApplication::receiveEvent);
       }
     }
     
@@ -168,7 +168,7 @@ namespace dqm4hep {
         auto eorEvent = dynamic_cast<StoreEvent<core::Run>*>(appEvent);
         auto run = eorEvent->data();
         m_runControl.endCurrentRun(run.parameters());
-        if(FILE_READER == appRunningMode()) {
+        if(EVENT_READER == appRunningMode()) {
           dqm_info( "End of run processed. Exiting application ..." );
           this->exit(0);
         }
@@ -183,8 +183,8 @@ namespace dqm4hep {
           auto anaModule = moduleAs<AnalysisModule>();
           anaModule->process(procEvent->data());
           m_cycle.incrementCounter();
-          if(FILE_READER == appRunningMode()) {
-            auto status = m_fileReader->readNextEvent();
+          if(EVENT_READER == appRunningMode()) {
+            auto status = m_eventReader->readNextEvent();
             // end of file ?
             if(status == core::STATUS_CODE_OUT_OF_RANGE) {
               processEndOfRun();
@@ -270,14 +270,14 @@ namespace dqm4hep {
         m_module->startOfCycle();
         m_cycle.startCycle(true);
       }
-      if(FILE_READER == appRunningMode()) {
+      if(EVENT_READER == appRunningMode()) {
         core::Run run;
-        THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, m_fileReader->runInfo(run));
+        THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, m_eventReader->runInfo(run));
         m_runControl.startNewRun(run);
         m_module->startOfCycle();
         m_cycle.startCycle();
         // read first will post an event in event loop
-        THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, m_fileReader->readNextEvent());
+        THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, m_eventReader->readNextEvent());
       }
     }
     
@@ -358,7 +358,7 @@ namespace dqm4hep {
       }
       
       // determine running mode
-      static core::StringVector possibleModes = {"Online", "File"}; 
+      static core::StringVector possibleModes = {"Online", "EventReader"}; 
       std::string runningMode;
       THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, core::XmlHelper::getAttribute(settingsElement, 
         "mode", runningMode, [&](const std::string &value){
@@ -368,12 +368,12 @@ namespace dqm4hep {
         m_appRunningMode = ONLINE;
       }
       else {
-        m_appRunningMode = FILE_READER;
+        m_appRunningMode = EVENT_READER;
       }
       configureModule(moduleElement);
       configureCycle(settingsElement);
       configureNetwork(settingsElement);
-      configureFileReader(settingsElement);
+      configureEventReader(settingsElement);
       
       core::TiXmlHandle settingsHandle(settingsElement);
       THROW_RESULT_IF_AND_IF(core::STATUS_CODE_SUCCESS, core::STATUS_CODE_NOT_FOUND,!=, core::XmlHelper::readParameter(settingsHandle, "StandaloneSleepTime", m_standaloneSleep));
@@ -409,7 +409,7 @@ namespace dqm4hep {
         dqm_error( "Undefined module type, must be AnalysisModule or StandaloneModule" );
         throw core::StatusCodeException(core::STATUS_CODE_INVALID_PARAMETER);
       }
-      if(m_appRunningMode == FILE_READER and m_appModuleType != ANALYSIS) {
+      if(m_appRunningMode == EVENT_READER and m_appModuleType != ANALYSIS) {
         dqm_error( "Application running in FileReader mode. Can run only module of type AnalysisModule" );
         throw core::StatusCodeException(core::STATUS_CODE_INVALID_PARAMETER);
       }
@@ -472,27 +472,27 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
-    void ModuleApplication::configureFileReader(core::TiXmlElement *element) {
-      if(FILE_READER != appRunningMode()) {
+    void ModuleApplication::configureEventReader(core::TiXmlElement *element) {
+      if(EVENT_READER != appRunningMode()) {
         return;
       }
-      std::string fileReaderName, eventFileName;
+      std::string eventReaderName, eventFileName;
       int skipNEvents = 0;
       core::TiXmlHandle handle(element);
-      THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, core::XmlHelper::readParameter(handle, "FileReader", fileReaderName));
-      m_fileReader = core::PluginManager::instance()->create<FileReader>(fileReaderName);
-      if(nullptr == m_fileReader) {
-        dqm_error( "Could not found file reader {0} in list of plugins", fileReaderName );
+      THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, core::XmlHelper::readParameter(handle, "EventReader", eventReaderName));
+      m_eventReader = core::PluginManager::instance()->create<core::EventReader>(eventReaderName);
+      if(nullptr == m_eventReader) {
+        dqm_error( "Could not found event reader {0} in list of plugins", eventReaderName );
         throw core::StatusCodeException(core::STATUS_CODE_NOT_FOUND);
       }
-      dqm_info( "Loaded file reader plugin '{0}'", fileReaderName );
+      dqm_info( "Loaded file reader plugin '{0}'", eventReaderName );
       THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, core::XmlHelper::readParameter(handle, "EventFileName", eventFileName));
       dqm_info( "Opening file: {0}", eventFileName );
       THROW_RESULT_IF_AND_IF(core::STATUS_CODE_SUCCESS, core::STATUS_CODE_NOT_FOUND, !=, core::XmlHelper::readParameter(handle, "SkipNEvents", skipNEvents));
-      THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, m_fileReader->open(eventFileName));
+      THROW_RESULT_IF(core::STATUS_CODE_SUCCESS, !=, m_eventReader->open(eventFileName));
       if(0 != skipNEvents) {
-        dqm_info( "Will skip {0} first events from file", skipNEvents );
-        m_fileReader->skipNEvents(skipNEvents);
+        dqm_info( "Will skip {0} first events ...", skipNEvents );
+        m_eventReader->skipNEvents(skipNEvents); // running offline ...
       }
       enableStats(false);
     }

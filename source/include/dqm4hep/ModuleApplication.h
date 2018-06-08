@@ -39,7 +39,7 @@
 #include "dqm4hep/Module.h"
 #include "dqm4hep/EventCollectorClient.h"
 #include "dqm4hep/MonitorElementManager.h"
-#include "dqm4hep/FileReader.h"
+#include "dqm4hep/EventReader.h"
 
 // -- tclap headers
 #include "tclap/CmdLine.h"
@@ -69,7 +69,7 @@ namespace dqm4hep {
       enum RunningMode {
         UNDEFINED_MODE,
         ONLINE,
-        FILE_READER
+        EVENT_READER
       };
       
       ModuleApplication(const ModuleApplication&) = delete;
@@ -162,11 +162,11 @@ namespace dqm4hep {
       void configureNetwork(core::TiXmlElement *element);
       
       /**
-       *  @brief  Configure the file reader
+       *  @brief  Configure the event reader
        *
        *  @param  element the xml element
        */
-      void configureFileReader(core::TiXmlElement *element);
+      void configureEventReader(core::TiXmlElement *element);
       
       /**
        *  @brief  Process the start of run service update
@@ -215,6 +215,7 @@ namespace dqm4hep {
       using CmdLine = std::shared_ptr<TCLAP::CmdLine>;
       using EventClientPtr = std::shared_ptr<EventCollectorClient>;
       using MonitorElementManagerPtr = std::shared_ptr<core::MonitorElementManager>;
+      using EventReaderPtr = std::shared_ptr<core::EventReader>;
       
       /**
        *  @brief  Priorities enumerator
@@ -262,8 +263,8 @@ namespace dqm4hep {
       MonitorElementManagerPtr     m_monitorElementManager = {nullptr};
       /// Whether the application for monitor element booking (state variable)
       bool                         m_allowBooking = {false};
-      /// The input file reader 
-      FileReaderPtr                m_fileReader = {nullptr};
+      /// The event reader 
+      EventReaderPtr               m_eventReader = {nullptr};
     };
     
     //-------------------------------------------------------------------------------------------------

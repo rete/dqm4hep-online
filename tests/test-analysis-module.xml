@@ -2,8 +2,9 @@
   
   <!-- Application settings -->
   <settings mode="EventReader">
+    <parameter name="EnableStatistics"> false </parameter>
     <parameter name="EventReader"> GenericEventXMLReader </parameter>
-    <parameter name="EventFileName"> /home/rete/soft/dqm4hep-core/tests/genevt_dummy_data.xml </parameter>
+    <parameter name="EventFileName"> /home/$ENV{USER}/soft/dqm4hep-core/tests/genevt_dummy_data.xml </parameter>
     <parameter name="CyclePeriod"> 1 </parameter>
     <parameter name="CycleCounter"> 0 </parameter>
     <parameter name="CycleTimeout"> 0 </parameter>
@@ -12,6 +13,18 @@
     <parameter name="EventSource"> TestSource </parameter>
     <parameter name="MonitorElementCollector"> TestMeCollector </parameter>
   </settings>
+  
+  <!-- Archiver settings -->
+  <archiver enable="true">
+    <parameter name="FileName" value="Archive.root"/>
+    <parameter name="OpenMode" value="RECREATE"/>
+    <parameter name="AllowOverwrite" value="false"/>
+    <parameter name="AppendRunNumber" value="true"/>
+    <parameter name="WriteReferences" value="true"/>
+    <selectors>
+      <selector regex=".*" select="true"/>
+    </selectors>    
+  </archiver>
   
   <storage>
     <style theme="polar"/>

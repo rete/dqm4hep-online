@@ -94,8 +94,8 @@ namespace dqm4hep {
       /**
        *  @brief  Get a pointer to the user module dynamic casted to a certain type
        */
-      template <typename ModuleType>
-      ModuleType *moduleAs();
+      template <typename T>
+      T *moduleAs();
 
       /** 
        *  @brief  Get the module name
@@ -307,9 +307,9 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
     //-------------------------------------------------------------------------------------------------
     
-    template <typename ModuleType>
-    inline ModuleType *ModuleApplication::moduleAs() {
-      return dynamic_cast<ModuleType*>(m_module.get());
+    template <typename T>
+    inline T *ModuleApplication::moduleAs() {
+      return dynamic_cast<T*>(m_module.get());
     }
 
   }

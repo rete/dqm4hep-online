@@ -44,14 +44,9 @@ add_shared_library( ${PROJECT_NAME} ${SRC_FILES} )
 install( TARGETS ${PROJECT_NAME} LIBRARY DESTINATION lib )
 install_directory( include DESTINATION . FILES_MATCHING PATTERN "*.h" PATTERN "*.cc" )
 
-# -------- Add executables --------
-dqm4hep_add_executable( main dqm4hep-start-rc-server bin )
-dqm4hep_add_executable( main dqm4hep-start-random-event-source bin )
-dqm4hep_add_executable( main dqm4hep-start-online-mgr bin )
-dqm4hep_add_executable( main dqm4hep-online-logger bin )
-dqm4hep_add_executable( main dqm4hep-start-event-collector bin )
-dqm4hep_add_executable( main dqm4hep-dump-event bin )
-dqm4hep_add_executable( main dqm4hep-start-module bin )
+# -------------------------------------------------
+# build all binaries in main directory
+dqm4hep_add_main_executables()
 
 # -------------------------------------------------
 # build unit tests

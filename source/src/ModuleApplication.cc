@@ -507,7 +507,6 @@ namespace dqm4hep {
         dqm_info( "Will skip {0} first events ...", skipNEvents );
         m_eventReader->skipNEvents(skipNEvents); // running offline ...
       }
-      enableStats(false);
     }
     
     //-------------------------------------------------------------------------------------------------

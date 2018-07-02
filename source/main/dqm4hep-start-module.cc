@@ -28,6 +28,7 @@
 // -- dqm4hep headers
 #include "dqm4hep/ModuleApplication.h"
 #include "dqm4hep/Logging.h"
+#include "dqm4hep/PluginManager.h"
 
 std::shared_ptr<dqm4hep::online::ModuleApplication> application;
 
@@ -56,6 +57,7 @@ int main(int argc, char* argv[])
   application = std::make_shared<dqm4hep::online::ModuleApplication>();
   
   try {
+    THROW_RESULT_IF(dqm4hep::core::STATUS_CODE_SUCCESS, !=, dqm4hep::core::PluginManager::instance()->loadLibraries());
     application->init(argc, argv);
   }
   catch(dqm4hep::core::StatusCodeException &e) {

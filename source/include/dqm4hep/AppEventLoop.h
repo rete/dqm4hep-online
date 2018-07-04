@@ -182,7 +182,7 @@ namespace dqm4hep {
       AppEventLoop(AppEventLoop&&) = delete;
       
       struct QueueCompare {
-        bool operator()(AppEvent* lhs, AppEvent* rhs) {
+        bool operator()(AppEvent* lhs, AppEvent* rhs) const {
           return lhs->priority() < rhs->priority();
         }
       };

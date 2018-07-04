@@ -202,7 +202,7 @@ namespace dqm4hep {
     
     int AppEventLoop::count(int eventType) {
       std::lock_guard<std::recursive_mutex> lock(m_queueMutex);
-      return std::count_if(m_eventQueue.begin(), m_eventQueue.end(), [&eventType](AppEventPtr ptr){
+      return std::count_if(m_eventQueue.begin(), m_eventQueue.end(), [&eventType](AppEvent* ptr){
         return (ptr->type() == eventType);
       });
     }

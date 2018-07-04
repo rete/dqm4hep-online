@@ -450,8 +450,8 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
     
     void Application::NetworkHandler::postServiceContent(const net::Buffer &buffer) {
-      int count = m_eventLoop.count([this](std::shared_ptr<AppEvent> ptr){
-        ServiceUpdateEvent *evt = dynamic_cast<ServiceUpdateEvent*>(ptr.get());
+      int count = m_eventLoop.count([this](AppEvent* ptr){
+        ServiceUpdateEvent *evt = dynamic_cast<ServiceUpdateEvent*>(ptr);
         return (evt && evt->serviceName() == this->m_name);
       });
       
@@ -495,8 +495,8 @@ namespace dqm4hep {
     //-------------------------------------------------------------------------------------------------
     
     void Application::NetworkHandler::postCommandEvent(const net::Buffer &buffer) {
-      int count = m_eventLoop.count([this](std::shared_ptr<AppEvent> ptr){
-        CommandEvent *evt = dynamic_cast<CommandEvent*>(ptr.get());
+      int count = m_eventLoop.count([this](AppEvent* ptr){
+        CommandEvent *evt = dynamic_cast<CommandEvent*>(ptr);
         return (evt && evt->commandName() == this->m_name);
       });
       

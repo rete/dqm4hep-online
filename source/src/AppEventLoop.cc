@@ -64,7 +64,12 @@ namespace dqm4hep {
         return;
       }
       // process an event
-      this->processEvent(pAppEvent);
+      try {
+        this->processEvent(pAppEvent);        
+      }
+      catch(...) {
+        dqm_error( "AppEventLoop::sendEvent: caught exception for event {0} of type {1}", (void*)pAppEvent, pAppEvent->type() );
+      }
       delete pAppEvent;
     }
     

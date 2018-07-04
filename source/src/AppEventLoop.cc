@@ -111,12 +111,12 @@ namespace dqm4hep {
         
         try {
           this->processEvent(event);
-          delete event;    
         }
         catch(...) {
           m_returnCode = 1;
           break;
         }
+        delete event;
         usleep(100);
       }
       

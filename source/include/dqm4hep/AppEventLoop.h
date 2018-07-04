@@ -181,9 +181,13 @@ namespace dqm4hep {
       AppEventLoop(const AppEventLoop&) = delete;
       AppEventLoop(AppEventLoop&&) = delete;
       
-      typedef std::shared_ptr<AppEvent> AppEventPtr;
+      struct QueueCompare {
+        bool operator()(AppEvent* lhs, AppEvent* rhs) {
+          return lhs->priority() < rhs->priority();
+        }
+      };
       
-      std::deque<AppEventPtr>                      m_eventQueue = {};
+      std::set<AppEvent*,QueueCompare>             m_eventQueue = {};
       std::recursive_mutex                         m_queueMutex = {};
       std::recursive_mutex                         m_eventMutex = {};
       std::recursive_mutex                         m_exceptionMutex = {};

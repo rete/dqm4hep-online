@@ -104,7 +104,7 @@ namespace dqm4hep {
         }
         
         // if no event, save cpu ressources ...
-        if(nullptr != event) {
+        if(nullptr == event) {
           usleep(100);
           continue;
         }

@@ -48,84 +48,72 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
-    void AppEventLoop::postEvent(AppEvent *pAppEvent)
-    {
-      if(nullptr == pAppEvent)
+    void AppEventLoop::postEvent(AppEvent *pAppEvent) {
+      if(nullptr == pAppEvent) {
         return;
-      std::lock_guard<std::recursive_mutex> lock(m_queueMutex);      
+      }
       // push event in the queue
-      m_eventQueue.push_front(std::shared_ptr<AppEvent>(pAppEvent));      
-      // sort the event queue by priority
-      std::sort(m_eventQueue.begin(), m_eventQueue.end(), [](AppEventPtr lhs, AppEventPtr rhs){
-        return lhs->priority() < rhs->priority();
-      });
+      std::lock_guard<std::recursive_mutex> lock(m_queueMutex);      
+      m_eventQueue.insert(pAppEvent);   
     }
     
     //-------------------------------------------------------------------------------------------------
     
-    void AppEventLoop::sendEvent(AppEvent *pAppEvent)
-    {
-      if(nullptr == pAppEvent)
+    void AppEventLoop::sendEvent(AppEvent *pAppEvent) {
+      if(nullptr == pAppEvent) {
         return;
-        
-      // take ownership of event ptr
-      std::unique_ptr<AppEvent> ptr(pAppEvent);
-      
+      }
       // process an event
       this->processEvent(pAppEvent);
+      delete pAppEvent;
     }
     
     //-------------------------------------------------------------------------------------------------
     
-    void AppEventLoop::clear()
-    {
+    void AppEventLoop::clear() {
       std::lock_guard<std::recursive_mutex> lock(m_queueMutex);
+      for(auto evt : m_eventQueue) {
+        delete evt;
+      }
       m_eventQueue.clear();
     }
     
     //-------------------------------------------------------------------------------------------------
 
-    int AppEventLoop::exec()
-    {
+    int AppEventLoop::exec() {
       m_running = true;
       m_quitFlag = false;
       
       m_timerThread = std::thread(&AppEventLoop::timerThread, this);
       
-      while(1)
-      {
-        if(m_quitFlag)
+      while(1) {
+        if(m_quitFlag) {
           break;
+        }
         
         // safely get the app event pointer 
-        AppEventPtr event;
+        AppEvent* event = nullptr;
         
         {
           std::lock_guard<std::recursive_mutex> lock(m_queueMutex);
           
-          if(!m_eventQueue.empty())
-          {
-            event = m_eventQueue.back();
-            m_eventQueue.pop_back();            
+          if(!m_eventQueue.empty()) {
+            event = *m_eventQueue.rbegin();
+            m_eventQueue.erase(event);               
           }
         }
         
         // if no event, save cpu ressources ...
-        if(!event)
-        {
+        if(nullptr != event) {
           usleep(100);
           continue;
         }
         
-        // process an event
-        AppEvent *pAppEvent = event.get();
-        
-        try
-        {
-          this->processEvent(pAppEvent);          
+        try {
+          this->processEvent(event);
+          delete event;    
         }
-        catch(...)
-        {
+        catch(...) {
           m_returnCode = 1;
           break;
         }
@@ -140,15 +128,13 @@ namespace dqm4hep {
     
     //-------------------------------------------------------------------------------------------------
     
-    bool AppEventLoop::running() const
-    {
+    bool AppEventLoop::running() const {
       return m_running.load();
     }
 
     //-------------------------------------------------------------------------------------------------    
     
-    void AppEventLoop::exit(int returnCode)
-    {
+    void AppEventLoop::exit(int returnCode) {
       auto event = new StoreEvent<int>(AppEvent::QUIT, returnCode);
       event->setPriority(100);
       this->sendEvent(event);
@@ -156,71 +142,59 @@ namespace dqm4hep {
 
     //-------------------------------------------------------------------------------------------------
     
-    void AppEventLoop::quit()
-    {
+    void AppEventLoop::quit() {
       this->exit(0);
     }
     
     //-------------------------------------------------------------------------------------------------
     
-    void AppEventLoop::processEvent(AppEvent *pAppEvent)
-    {    
-      try
-      {
+    void AppEventLoop::processEvent(AppEvent *pAppEvent) {    
+      try {
         std::lock_guard<std::recursive_mutex> lock(m_eventMutex);
         m_onEventSignal.emit(pAppEvent);
       }
-      catch(core::StatusCodeException &except)
-      {
+      catch(core::StatusCodeException &except) {
         std::lock_guard<std::recursive_mutex> lock(m_exceptionMutex);
         
-        if(!m_onExceptionSignal.hasConnection())
-        {
+        if(!m_onExceptionSignal.hasConnection()) {
           dqm_error( "EventLoop::exec(): Caught exception: {0}" , except.what() );
           throw except;          
         }
-        else
-        {
+        else {
           m_onExceptionSignal.emit(pAppEvent);
         }
       }
-      catch(std::exception &except)
-      {
+      catch(std::exception &except) {
         std::lock_guard<std::recursive_mutex> lock(m_exceptionMutex);
         
-        if(!m_onExceptionSignal.hasConnection())
-        {
+        if(!m_onExceptionSignal.hasConnection()) {
           dqm_error( "EventLoop::exec(): Caught exception: {0}" , except.what() );
           throw except;          
         }
-        else
-        {
+        else {
           m_onExceptionSignal.emit(pAppEvent);
         }
       }
-      catch(...)
-      {
+      catch(...) {
         std::lock_guard<std::recursive_mutex> lock(m_exceptionMutex);
         
-        if(!m_onExceptionSignal.hasConnection())
-        {
+        if(!m_onExceptionSignal.hasConnection()) {
           dqm_error( "EventLoop::exec(): Caught unknown exception !" );
           throw core::StatusCodeException(core::STATUS_CODE_FAILURE);
         }
-        else
-        {
+        else {
           m_onExceptionSignal.emit(pAppEvent);
         }
       }
       
-      if(pAppEvent->type() == AppEvent::QUIT)
-      {
+      if(pAppEvent->type() == AppEvent::QUIT) {
         m_quitFlag = true;
         m_returnCode = 1;
         StoreEvent<int> *quitEvent = dynamic_cast<StoreEvent<int>*>(pAppEvent);
         
-        if(quitEvent)
+        if(quitEvent) {
           m_returnCode = quitEvent->data();
+        }
       }
     }
     

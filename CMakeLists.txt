@@ -21,6 +21,10 @@ include( dqm4hep_settings )
 # Define options
 option( BUILD_HTTP_RC  "Set to OFF to skip build/install http run control plugin" OFF )
 
+# ----- Find Threads for multithreading -----
+find_package( Threads REQUIRED )
+link_libraries( ${CMAKE_THREAD_LIBS_INIT} )
+
 # ----- Find DQMCore package -----
 dqm4hep_find_packages( 
   PACKAGES DQMCore DQMNet

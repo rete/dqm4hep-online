@@ -38,6 +38,7 @@
 #include "dqm4hep/AppEventLoop.h"
 #include "dqm4hep/Logger.h"
 #include "dqm4hep/OnlineRoutes.h"
+#include "dqm4hep/WebSocketServer.h"
 
 namespace dqm4hep {
 
@@ -463,6 +464,7 @@ namespace dqm4hep {
       using NetworkHandlerPtr = std::shared_ptr<NetworkHandler>;
       using NetworkHandlerPtrMap = std::map<const std::string, NetworkHandlerPtr>;
       using ServerPtr = std::shared_ptr<net::Server>;
+      using WsServerPtr = std::shared_ptr<net::WsServer>;
       using LoggerPtr = core::Logger::LoggerPtr;
       using LogLevel = core::Logger::Level;
       using Service = net::Service;
@@ -487,6 +489,8 @@ namespace dqm4hep {
       bool                         m_noServer = {false};
       /// The main server interface of the application
       ServerPtr                    m_server = {nullptr};
+      /// The websocket server interface
+      WsServerPtr                  m_wsServer = {nullptr};
       /// The service for application state, updated when the state changes
       Service*                     m_pAppStateService = {nullptr};
       /// The main client interface of the application
